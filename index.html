@@ -1,806 +1,456 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CI — Сияй | Холл особняка</title>
-    <!-- Three.js через CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- Font Awesome для иконок -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        /* Сброс и базовая адаптивность */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
-            background: #0a0a0a;
-            color: #f5e7d9;
-            overflow: hidden;
-            height: 100vh;
-            width: 100vw;
-            position: relative;
-        }
-        /* Прелоадер */
-        #preloader {
-            position: fixed;
-            inset: 0;
-            z-index: 1000;
-            background: #0d0b0a;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            transition: opacity 1s ease, visibility 1s ease;
-        }
-        #preloader.hidden {
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-        }
-        #preloader .logo {
-            font-size: 5rem;
-            font-weight: 300;
-            letter-spacing: 0.3em;
-            color: #d4af37;
-            text-shadow: 0 0 30px rgba(212, 175, 55, 0.3);
-            margin-bottom: 1rem;
-        }
-        #preloader .sub {
-            color: #b8a28c;
-            font-size: 1.2rem;
-            letter-spacing: 0.5em;
-        }
-        .loader-bar {
-            width: 200px;
-            height: 2px;
-            background: #2a2a2a;
-            margin-top: 2rem;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        .loader-bar::after {
-            content: '';
-            display: block;
-            width: 40%;
-            height: 100%;
-            background: #d4af37;
-            animation: load 1.8s ease-in-out infinite;
-        }
-        @keyframes load {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(350%); }
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>CI — Сияй. Особняк премиальной мебели</title>
+  <!-- Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family:'Segoe UI','Roboto',system-ui,sans-serif;
+      background:#0a0a0a; color:#f5e7d9;
+      overflow:hidden; height:100vh;
+    }
+    #preloader {
+      position:fixed; inset:0; z-index:9999;
+      background:#0a0a0a;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      transition:opacity 1.2s, visibility 1.2s;
+    }
+    #preloader.hidden { opacity:0; visibility:hidden; pointer-events:none; }
+    .preloader-logo {
+      font-size:5rem; font-weight:300; letter-spacing:0.3em;
+      color:#d4af37; text-shadow:0 0 30px rgba(212,175,55,0.3);
+      border:2px solid rgba(212,175,55,0.3); padding:0.5rem 2rem; margin-bottom:1rem;
+    }
+    .preloader-sub { font-size:1.2rem; letter-spacing:0.6em; color:#b8a07a; text-transform:uppercase; }
+    .preloader-spinner {
+      margin-top:2rem; width:40px; height:40px;
+      border:3px solid rgba(212,175,55,0.1); border-top:3px solid #d4af37;
+      border-radius:50%; animation:spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    #three-container { position:fixed; inset:0; z-index:0; pointer-events:none; }
+    .scroll-container {
+      position:absolute; top:0; left:0; width:100%; height:100vh;
+      overflow-y:scroll; overflow-x:hidden;
+      scrollbar-width:thin; scrollbar-color:#d4af37 #1a1a1a;
+      pointer-events:auto; scroll-behavior:smooth; z-index:10;
+    }
+    .scroll-container::-webkit-scrollbar { width:6px; }
+    .scroll-container::-webkit-scrollbar-track { background:#1a1a1a; }
+    .scroll-container::-webkit-scrollbar-thumb { background:#d4af37; border-radius:10px; }
 
-        /* 3D-контейнер */
-        #three-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 0;
-        }
-
-        /* UI-наложение */
-        .ui-overlay {
-            position: relative;
-            z-index: 10;
-            width: 100%;
-            height: 100vh;
-            pointer-events: none;
-        }
-        .ui-overlay > * {
-            pointer-events: auto;
-        }
-
-        /* Бургер-меню */
-        .burger-wrap {
-            position: fixed;
-            top: 25px;
-            right: 25px;
-            z-index: 100;
-            cursor: pointer;
-            background: rgba(20, 18, 16, 0.6);
-            backdrop-filter: blur(6px);
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid rgba(212, 175, 55, 0.3);
-            transition: 0.3s;
-            pointer-events: auto;
-        }
-        .burger-wrap:hover {
-            border-color: #d4af37;
-            box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
-        }
-        .burger-wrap i {
-            font-size: 1.6rem;
-            color: #f0e0c0;
-        }
-        .burger-menu {
-            position: fixed;
-            top: 80px;
-            right: 25px;
-            background: rgba(12, 10, 8, 0.85);
-            backdrop-filter: blur(12px);
-            border: 1px solid #3a2e24;
-            border-radius: 16px;
-            padding: 0.8rem 0;
-            min-width: 200px;
-            opacity: 0;
-            transform: translateY(-10px) scale(0.96);
-            transition: 0.25s ease;
-            pointer-events: none;
-            z-index: 99;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.7);
-        }
-        .burger-menu.open {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-            pointer-events: auto;
-        }
-        .burger-menu a {
-            display: block;
-            padding: 12px 24px;
-            color: #e8d9c8;
-            text-decoration: none;
-            font-size: 1rem;
-            letter-spacing: 0.05em;
-            border-left: 3px solid transparent;
-            transition: 0.2s;
-        }
-        .burger-menu a:hover {
-            background: rgba(212, 175, 55, 0.1);
-            border-left-color: #d4af37;
-            color: #f5e7d9;
-        }
-
-        /* Дворецкий и чат */
-        .butler-section {
-            position: absolute;
-            bottom: 8%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 90%;
-            max-width: 500px;
-            text-align: center;
-            pointer-events: auto;
-        }
-        .butler-figure {
-            width: 80px;
-            height: 120px;
-            margin: 0 auto 10px;
-            background: radial-gradient(ellipse at 50% 30%, #2a221c, #0f0d0b);
-            border-radius: 40% 40% 20% 20% / 60% 60% 20% 20%;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.7), inset 0 -10px 20px rgba(212, 175, 55, 0.1);
-            position: relative;
-            animation: sway 3s ease-in-out infinite;
-            transform-origin: bottom center;
-            border: 1px solid rgba(212, 175, 55, 0.2);
-        }
-        .butler-figure::after {
-            content: '';
-            position: absolute;
-            top: 15%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 30px;
-            height: 30px;
-            background: radial-gradient(circle, #e8d5b0 10%, #b89a7a 80%);
-            border-radius: 50%;
-            box-shadow: 0 0 20px #d4af37;
-        }
-        @keyframes sway {
-            0%, 100% { transform: rotate(0deg); }
-            25% { transform: rotate(2deg); }
-            75% { transform: rotate(-2deg); }
-        }
-        .chat-window {
-            background: rgba(10, 8, 6, 0.7);
-            backdrop-filter: blur(8px);
-            border-radius: 24px;
-            padding: 12px 16px;
-            border: 1px solid #4a3e32;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.8);
-        }
-        .chat-messages {
-            min-height: 40px;
-            max-height: 80px;
-            overflow-y: auto;
-            font-size: 0.95rem;
-            color: #f0e0d0;
-            text-align: left;
-            padding: 4px 8px;
-            margin-bottom: 8px;
-            scrollbar-width: thin;
-            scrollbar-color: #d4af37 #1a1512;
-        }
-        .chat-messages::-webkit-scrollbar {
-            width: 4px;
-        }
-        .chat-messages::-webkit-scrollbar-track {
-            background: #1a1512;
-        }
-        .chat-messages::-webkit-scrollbar-thumb {
-            background: #d4af37;
-            border-radius: 10px;
-        }
-        .chat-input-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .chat-input-row input {
-            flex: 1;
-            background: rgba(30, 25, 20, 0.8);
-            border: 1px solid #5a4a3a;
-            border-radius: 40px;
-            padding: 10px 16px;
-            color: #f0e0d0;
-            font-size: 0.95rem;
-            outline: none;
-            transition: 0.2s;
-        }
-        .chat-input-row input:focus {
-            border-color: #d4af37;
-            box-shadow: 0 0 15px rgba(212, 175, 55, 0.15);
-        }
-        .chat-input-row button {
-            background: rgba(212, 175, 55, 0.2);
-            border: 1px solid #d4af37;
-            border-radius: 50%;
-            width: 44px;
-            height: 44px;
-            color: #f0e0c0;
-            font-size: 1.2rem;
-            cursor: pointer;
-            transition: 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .chat-input-row button:hover {
-            background: rgba(212, 175, 55, 0.4);
-            box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
-        }
-        .chat-input-row button:active {
-            transform: scale(0.92);
-        }
-
-        /* Метки дверей (CSS2D-стиль) */
-        .door-label {
-            position: absolute;
-            color: #f5e7d9;
-            font-size: 0.9rem;
-            font-weight: 300;
-            letter-spacing: 0.1em;
-            text-shadow: 0 0 20px rgba(212, 175, 55, 0.7);
-            background: rgba(0,0,0,0.3);
-            padding: 4px 12px;
-            border-radius: 30px;
-            backdrop-filter: blur(4px);
-            border: 1px solid rgba(212, 175, 55, 0.2);
-            white-space: nowrap;
-            pointer-events: auto;
-            transform: translate(-50%, -50%);
-            transition: 0.3s;
-            cursor: pointer;
-            z-index: 20;
-        }
-        .door-label:hover {
-            background: rgba(212, 175, 55, 0.2);
-            border-color: #d4af37;
-        }
-
-        /* Вспышка перехода */
-        .transition-flash {
-            position: fixed;
-            inset: 0;
-            z-index: 200;
-            background: radial-gradient(circle, #fff8e0, #d4af37);
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.6s ease;
-        }
-        .transition-flash.active {
-            opacity: 1;
-            transition: opacity 0.2s ease;
-        }
-
-        /* Кастомный скролл (вертикальный вверх) */
-        .scroll-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100vh;
-            overflow-y: scroll;
-            overflow-x: hidden;
-            z-index: 5;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-            pointer-events: auto;
-        }
-        .scroll-container::-webkit-scrollbar {
-            display: none;
-        }
-        .scroll-content {
-            height: 400vh;
-            pointer-events: none;
-        }
-
-        /* Адаптивность */
-        @media (max-width: 768px) {
-            .butler-figure {
-                width: 60px;
-                height: 90px;
-            }
-            .chat-window {
-                padding: 10px 12px;
-            }
-            .burger-menu {
-                min-width: 160px;
-                right: 15px;
-                top: 70px;
-            }
-            .burger-wrap {
-                width: 40px;
-                height: 40px;
-                right: 15px;
-                top: 15px;
-            }
-            .burger-wrap i {
-                font-size: 1.3rem;
-            }
-            .door-label {
-                font-size: 0.7rem;
-                padding: 2px 8px;
-            }
-        }
-    </style>
+    .floor {
+      height:100vh; width:100%; display:flex; align-items:center; justify-content:center;
+      font-size:2rem; color:rgba(245,231,217,0.15); text-transform:uppercase;
+      letter-spacing:0.3em; border-bottom:1px solid rgba(212,175,55,0.05);
+      background:transparent; pointer-events:none; position:relative;
+    }
+    .floor span {
+      background:rgba(10,10,10,0.5); backdrop-filter:blur(4px);
+      padding:0.5rem 2rem; border-radius:40px; border:1px solid rgba(212,175,55,0.1);
+    }
+    .butler-area {
+      position:absolute; top:8%; left:50%; transform:translateX(-50%);
+      z-index:25; text-align:center; width:90%; max-width:600px; pointer-events:auto;
+    }
+    .butler-figure {
+      width:80px; height:120px; margin:0 auto;
+      filter:drop-shadow(0 10px 30px rgba(212,175,55,0.3));
+      animation:floatButler 4s ease-in-out infinite;
+    }
+    @keyframes floatButler { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-8px); } }
+    .chat-window {
+      background:rgba(10,10,10,0.7); backdrop-filter:blur(12px);
+      border:1px solid rgba(212,175,55,0.2); border-radius:24px;
+      padding:1rem 1.5rem; margin-top:0.5rem; box-shadow:0 8px 40px rgba(0,0,0,0.7);
+    }
+    .chat-messages {
+      min-height:60px; max-height:100px; overflow-y:auto;
+      font-size:0.95rem; color:#f0e3d4; text-align:left; margin-bottom:0.5rem;
+    }
+    .chat-input-group { display:flex; gap:0.5rem; align-items:center; }
+    .chat-input-group input {
+      flex:1; background:rgba(255,255,255,0.05); border:1px solid #3a322a;
+      border-radius:40px; padding:0.6rem 1.2rem; color:#f5e7d9; font-size:0.9rem; outline:none;
+    }
+    .chat-input-group input:focus { border-color:#d4af37; }
+    .chat-input-group button {
+      background:transparent; border:1px solid #d4af37; color:#d4af37;
+      border-radius:50%; width:40px; height:40px; font-size:1.1rem; cursor:pointer;
+    }
+    .chat-input-group button:hover { background:#d4af37; color:#0a0a0a; }
+    .microphone-btn { border:1px solid #b8a07a !important; color:#b8a07a !important; }
+    .doors-panel {
+      position:absolute; bottom:12%; left:50%; transform:translateX(-50%);
+      display:flex; gap:1.2rem; flex-wrap:wrap; justify-content:center;
+      z-index:20; width:90%; max-width:1100px; pointer-events:auto;
+    }
+    .door-item {
+      background:rgba(20,18,15,0.7); backdrop-filter:blur(6px);
+      border:1px solid rgba(212,175,55,0.25); border-radius:12px;
+      padding:0.6rem 1.2rem; color:#f5e7d9; font-size:0.9rem; letter-spacing:0.1em;
+      text-transform:uppercase; cursor:pointer; transition:0.3s; min-width:100px; text-align:center;
+    }
+    .door-item:hover {
+      border-color:#d4af37; background:rgba(40,35,28,0.8);
+      box-shadow:0 0 30px rgba(212,175,55,0.2); transform:scale(1.05);
+    }
+    .door-item i { margin-right:8px; color:#d4af37; }
+    .door-label { display:block; font-size:0.7rem; color:#b8a07a; margin-top:4px; }
+    .door-cellar {
+      position:absolute; bottom:2%; left:50%; transform:translateX(-50%);
+      z-index:20; background:rgba(10,10,10,0.7); backdrop-filter:blur(6px);
+      border:1px solid #5a4a3a; border-radius:30px;
+      padding:0.5rem 2rem; color:#b8a07a; font-size:0.9rem; letter-spacing:0.2em; cursor:pointer;
+    }
+    .door-cellar:hover { border-color:#d4af37; color:#d4af37; }
+    .burger-wrap {
+      position:fixed; top:25px; right:25px; z-index:100; cursor:pointer;
+      background:rgba(10,10,10,0.6); backdrop-filter:blur(8px);
+      border:1px solid #d4af37; border-radius:12px; padding:10px 14px;
+    }
+    .burger-wrap i { font-size:1.8rem; color:#d4af37; }
+    .burger-panel {
+      position:fixed; top:0; right:-320px; width:280px; height:100vh;
+      background:rgba(10,10,10,0.92); backdrop-filter:blur(20px);
+      border-left:1px solid rgba(212,175,55,0.2); z-index:99; padding:6rem 2rem 2rem;
+      transition:right 0.5s cubic-bezier(0.22,1,0.36,1);
+    }
+    .burger-panel.open { right:0; }
+    .burger-panel a {
+      display:block; color:#e8dccc; text-decoration:none; font-size:1.2rem;
+      padding:0.8rem 0; border-bottom:1px solid rgba(212,175,55,0.1); letter-spacing:0.1em;
+    }
+    .burger-panel a:hover { color:#d4af37; padding-left:10px; }
+    .burger-panel .close-btn { position:absolute; top:20px; right:20px; font-size:2rem; color:#b8a07a; cursor:pointer; }
+    #music-toggle {
+      position:fixed; bottom:25px; right:25px; z-index:50;
+      background:rgba(10,10,10,0.6); backdrop-filter:blur(8px);
+      border:1px solid #d4af37; border-radius:50%; width:50px; height:50px;
+      color:#d4af37; font-size:1.4rem; cursor:pointer;
+    }
+    #floor-indicator {
+      position:fixed; bottom:100px; left:20px; z-index:50;
+      background:rgba(10,10,10,0.6); backdrop-filter:blur(8px);
+      border:1px solid #d4af37; border-radius:30px;
+      padding:0.5rem 1.2rem; color:#d4af37; font-size:1rem; letter-spacing:0.1em;
+    }
+    @media (max-width:700px) {
+      .doors-panel { gap:0.6rem; bottom:16%; }
+      .door-item { min-width:70px; font-size:0.7rem; padding:0.4rem 0.8rem; }
+      .butler-figure { width:60px; height:90px; }
+    }
+  </style>
 </head>
 <body>
-    <!-- Прелоадер -->
-    <div id="preloader">
-        <div class="logo">CI</div>
-        <div class="sub">СИЯЙ</div>
-        <div class="loader-bar"></div>
-    </div>
-
-    <!-- 3D-контейнер -->
-    <div id="three-container"></div>
-
-    <!-- Кастомный скролл -->
-    <div class="scroll-container" id="scrollContainer">
-        <div class="scroll-content"></div>
-    </div>
-
-    <!-- UI-слой -->
-    <div class="ui-overlay">
-        <!-- Бургер-меню с aria-label -->
-        <div class="burger-wrap" id="burgerToggle" aria-label="Открыть меню" role="button" tabindex="0">
-            <i class="fas fa-bars"></i>
+  <div id="preloader"><div class="preloader-logo">CI</div><div class="preloader-sub">сияй</div><div class="preloader-spinner"></div></div>
+  <div id="three-container"></div>
+  <div class="scroll-container" id="scrollContainer">
+    <div class="floor" style="position:relative; pointer-events:none;">
+      <div class="butler-area">
+        <div class="butler-figure">
+          <svg viewBox="0 0 80 120" xmlns="http://www.w3.org/2000/svg">
+            <rect x="25" y="5" width="30" height="20" fill="#1a1a1a" stroke="#d4af37" stroke-width="0.5"/>
+            <rect x="20" y="20" width="40" height="5" fill="#2a2a2a" stroke="#d4af37" stroke-width="0.3"/>
+            <ellipse cx="40" cy="35" rx="12" ry="14" fill="#e8d5c0" stroke="#d4af37" stroke-width="0.3"/>
+            <circle cx="35" cy="33" r="1.5" fill="#1a1a1a"/><circle cx="45" cy="33" r="1.5" fill="#1a1a1a"/>
+            <path d="M30 40 Q40 44 50 40" stroke="#1a1a1a" stroke-width="1.5" fill="none"/>
+            <path d="M20 50 L15 110 L65 110 L60 50 Z" fill="#1a1a1a" stroke="#d4af37" stroke-width="0.3"/>
+            <path d="M30 50 L40 65 L50 50 Z" fill="#f0e3d4" stroke="#d4af37" stroke-width="0.2"/>
+            <rect x="35" y="48" width="10" height="4" fill="#d4af37"/>
+            <path d="M20 55 L10 80 L15 82 L25 60" fill="#1a1a1a" stroke="#d4af37" stroke-width="0.2"/>
+            <path d="M60 55 L70 80 L65 82 L55 60" fill="#1a1a1a" stroke="#d4af37" stroke-width="0.2"/>
+            <circle cx="12" cy="82" r="3" fill="#e8d5c0"/><circle cx="68" cy="82" r="3" fill="#e8d5c0"/>
+          </svg>
         </div>
-        <nav class="burger-menu" id="burgerMenu">
-            <a href="#">Регистрация</a>
-            <a href="#">Мастерская</a>
-            <a href="#">Для неё</a>
-            <a href="#">Для него</a>
-            <a href="#">Для дизайнеров</a>
-            <a href="#">О нас</a>
-            <a href="#">Погреб</a>
-        </nav>
-
-        <!-- Дворецкий и чат -->
-        <div class="butler-section">
-            <div class="butler-figure"></div>
-            <div class="chat-window">
-                <div class="chat-messages" id="chatMessages">
-                    <span>👋 Добро пожаловать в особняк CI. Сияйте вместе с нами.</span>
-                </div>
-                <div class="chat-input-row">
-                    <input type="text" id="chatInput" placeholder="Спросите дворецкого..." />
-                    <button id="micBtn" aria-label="Голосовой ввод"><i class="fas fa-microphone"></i></button>
-                </div>
-            </div>
+        <div class="chat-window">
+          <div class="chat-messages" id="chatMessages">
+            <p>👋 Добро пожаловать в особняк CI. Я ваш проводник в мир премиальной мебели. Куда желаете направиться?</p>
+          </div>
+          <div class="chat-input-group">
+            <input type="text" id="chatInput" placeholder="Напишите дворецкому..." />
+            <button id="chatSendBtn"><i class="fas fa-paper-plane"></i></button>
+            <button id="microphoneBtn" class="microphone-btn"><i class="fas fa-microphone"></i></button>
+          </div>
         </div>
+      </div>
+      <div class="doors-panel">
+        <div class="door-item" data-door="registration"><i class="fas fa-address-card"></i> Регистрация <span class="door-label">вход</span></div>
+        <div class="door-item" data-door="workshop"><i class="fas fa-tools"></i> Мастерская <span class="door-label">творчество</span></div>
+        <div class="door-item" data-door="for-her"><i class="fas fa-venus"></i> Для неё <span class="door-label">элегантность</span></div>
+        <div class="door-item" data-door="for-him"><i class="fas fa-mars"></i> Для него <span class="door-label">стиль</span></div>
+        <div class="door-item" data-door="designers"><i class="fas fa-pencil-ruler"></i> Дизайнерам <span class="door-label">вдохновение</span></div>
+        <div class="door-item" data-door="about"><i class="fas fa-info-circle"></i> О нас <span class="door-label">история</span></div>
+      </div>
+      <div class="door-cellar"><i class="fas fa-wine-bottle"></i> Погреб</div>
     </div>
+    <div class="floor"><span>✨ 2 этаж — Красная комната</span></div>
+    <div class="floor"><span>💎 3 этаж — Синяя комната</span></div>
+    <div class="floor"><span>🌿 4 этаж — Зелёная комната</span></div>
+    <div class="floor"><span>🔮 5 этаж — Пурпурная комната</span></div>
+    <div class="floor"><span>🌊 6 этаж — Голубая комната</span></div>
+    <div class="floor"><span>🌟 7 этаж — Жёлтая комната</span></div>
+    <div class="floor"><span>🏆 Избранное · Оплата · Контакты</span></div>
+  </div>
+  <div class="burger-wrap" id="burgerToggle"><i class="fas fa-bars"></i></div>
+  <div class="burger-panel" id="burgerPanel">
+    <span class="close-btn" id="burgerClose"><i class="fas fa-times"></i></span>
+    <a href="#"><i class="fas fa-home"></i> Холл</a>
+    <a href="#"><i class="fas fa-address-card"></i> Регистрация</a>
+    <a href="#"><i class="fas fa-tools"></i> Мастерская</a>
+    <a href="#"><i class="fas fa-venus"></i> Для неё</a>
+    <a href="#"><i class="fas fa-mars"></i> Для него</a>
+    <a href="#"><i class="fas fa-pencil-ruler"></i> Дизайнерам</a>
+    <a href="#"><i class="fas fa-info-circle"></i> О нас</a>
+    <a href="#"><i class="fas fa-wine-bottle"></i> Погреб</a>
+    <hr style="border-color:#2a221a; margin:1rem 0;">
+    <a href="#"><i class="fas fa-star"></i> Избранное</a>
+    <a href="#"><i class="fas fa-credit-card"></i> Оплата</a>
+  </div>
+  <button id="music-toggle"><i class="fas fa-music"></i></button>
+  <audio id="bgMusic" loop preload="auto" style="display:none;" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"></audio>
+  <div id="floor-indicator">🏛 Этаж 1</div>
 
-    <!-- Вспышка перехода -->
-    <div class="transition-flash" id="transitionFlash"></div>
+  <script>
+    (function() {
+      const preloader = document.getElementById('preloader');
+      window.addEventListener('load', () => setTimeout(() => preloader.classList.add('hidden'), 800));
 
-    <script>
-        (function() {
-            "use strict";
+      const container = document.getElementById('three-container');
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0a0a0a);
+      scene.fog = new THREE.FogExp2(0x0a0a0a, 0.008);
+      const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
+      camera.position.set(0, 2, 8);
+      camera.lookAt(0, 1, 0);
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.shadowMap.enabled = true;
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
 
-            // --- 1. ПРЕЛОАДЕР ---
-            window.addEventListener('load', () => {
+      function createMarbleTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(0,0,512,512);
+        for(let i=0;i<30;i++) {
+          ctx.beginPath();
+          let x=Math.random()*512, y=Math.random()*512;
+          ctx.moveTo(x,y);
+          for(let j=0;j<5;j++){ x+=(Math.random()-0.5)*100; y+=(Math.random()-0.5)*100; ctx.lineTo(x,y); }
+          ctx.strokeStyle=`rgba(212,175,55,${0.1+Math.random()*0.2})`; ctx.stroke();
+        }
+        return new THREE.CanvasTexture(canvas);
+      }
+      const marbleTexture = createMarbleTexture();
+      marbleTexture.wrapS = marbleTexture.wrapT = THREE.RepeatWrapping;
+      marbleTexture.repeat.set(2,2);
+
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(14,14), new THREE.MeshStandardMaterial({ map:marbleTexture, roughness:0.3, metalness:0.4 }));
+      floor.rotation.x = -Math.PI/2; floor.position.y = -0.5; floor.receiveShadow = true; scene.add(floor);
+
+      const wallMat = new THREE.MeshStandardMaterial({ color:0x1a1510, roughness:0.8, metalness:0.1 });
+      const backWall = new THREE.Mesh(new THREE.PlaneGeometry(14,5), wallMat); backWall.position.set(0,2,-5); scene.add(backWall);
+      const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(10,5), wallMat); leftWall.position.set(-7,2,0); leftWall.rotation.y=Math.PI/2; scene.add(leftWall);
+      const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(10,5), wallMat); rightWall.position.set(7,2,0); rightWall.rotation.y=-Math.PI/2; scene.add(rightWall);
+
+      scene.add(new THREE.AmbientLight(0x404060, 0.4));
+      const mainLight = new THREE.DirectionalLight(0xffdd99, 1.5); mainLight.position.set(2,5,3); mainLight.castShadow=true; scene.add(mainLight);
+      const goldLight1 = new THREE.PointLight(0xd4af37,0.8,10); goldLight1.position.set(-3,3,2); scene.add(goldLight1);
+      const goldLight2 = new THREE.PointLight(0xd4af37,0.8,10); goldLight2.position.set(3,3,2); scene.add(goldLight2);
+      const goldLight3 = new THREE.PointLight(0xd4af37,0.5,8); goldLight3.position.set(0,4,-2); scene.add(goldLight3);
+      scene.add(new THREE.PointLight(0x446688,0.3)).position.set(0,2,-5);
+
+      const pillarMat = new THREE.MeshStandardMaterial({ color:0x2a2a2a, roughness:0.7, metalness:0.1 });
+      [[-3.5,0,-2],[3.5,0,-2],[-3.5,0,2],[3.5,0,2]].forEach(p => {
+        const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.4,3,12), pillarMat);
+        pillar.position.set(p[0],1,p[2]); pillar.castShadow=pillar.receiveShadow=true; scene.add(pillar);
+        const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.45,0.3,0.2,8), new THREE.MeshStandardMaterial({ color:0xd4af37, roughness:0.3, metalness:0.6 }));
+        cap.position.set(p[0],2.5,p[2]); scene.add(cap);
+      });
+
+      const chandelier = new THREE.Mesh(new THREE.SphereGeometry(0.5), new THREE.MeshStandardMaterial({ color:0xd4af37, emissive:0xd4af37, emissiveIntensity:0.6 }));
+      chandelier.position.set(0,3.2,0); scene.add(chandelier);
+      for(let i=0;i<12;i++) {
+        const angle = (i/12)*Math.PI*2;
+        const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.08), new THREE.MeshStandardMaterial({ color:0xffdd99, emissive:0xffaa44, emissiveIntensity:0.5 }));
+        bulb.position.set(Math.cos(angle)*0.9, 3.0, Math.sin(angle)*0.9); scene.add(bulb);
+      }
+
+      const doorGroups = [];
+      const doorNames = ['Регистрация','Мастерская','Для Неё','Для Него','Для Дизайнеров','О Нас'];
+      for(let i=0;i<6;i++) {
+        const angle = (i/6)*Math.PI - Math.PI/2 + 0.3;
+        const x = Math.sin(angle)*3.5, z = Math.cos(angle)*3.5 - 1;
+        const group = new THREE.Group();
+        group.position.set(x,0,z);
+        group.rotation.y = -angle + Math.PI/2;
+
+        const door = new THREE.Mesh(new THREE.BoxGeometry(0.8,2,0.1), new THREE.MeshStandardMaterial({ color:0x3a2a1a, roughness:0.6, metalness:0.3 }));
+        door.position.y=1; door.castShadow=true; group.add(door);
+
+        const handle = new THREE.Mesh(new THREE.SphereGeometry(0.05), new THREE.MeshStandardMaterial({ color:0xd4af37, metalness:0.8 }));
+        handle.position.set(0.3,1,0.06); group.add(handle);
+
+        const doorLight = new THREE.PointLight(0xd4af37,0.8,2.5); doorLight.position.set(0,2.2,0.3); group.add(doorLight);
+        const glow = new THREE.Mesh(new THREE.SphereGeometry(0.1), new THREE.MeshStandardMaterial({ color:0xd4af37, emissive:0xd4af37, emissiveIntensity:0.3, transparent:true, opacity:0.3 }));
+        glow.position.set(0,2.2,0.3); group.add(glow);
+
+        const canvas = document.createElement('canvas');
+        canvas.width=256; canvas.height=64;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle='#d4af37'; ctx.font='bold 28px "Segoe UI",sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(doorNames[i],128,32);
+        const texture = new THREE.CanvasTexture(canvas);
+        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map:texture, transparent:true, depthTest:false }));
+        sprite.position.set(0,2.6,0.2); sprite.scale.set(1.2,0.3,1); group.add(sprite);
+
+        scene.add(group);
+        doorGroups.push({ group, door, name:doorNames[i], x, z });
+      }
+
+      document.addEventListener('mousemove', (e) => {
+        const x = (e.clientX/window.innerWidth-0.5)*0.3;
+        const y = (e.clientY/window.innerHeight-0.5)*0.15;
+        camera.position.x += (x - camera.position.x)*0.02;
+        camera.position.y += (y+2 - camera.position.y)*0.02;
+        camera.lookAt(0,1,0);
+      });
+
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+      let isAnimating = false;
+      const flash = document.createElement('div');
+      flash.id = 'door-flash';
+      flash.style.cssText = 'position:fixed;inset:0;z-index:200;background:radial-gradient(circle,rgba(212,175,55,0.9) 0%,transparent 70%);opacity:0;pointer-events:none;transition:opacity 0.3s;';
+      document.body.appendChild(flash);
+
+      function addChatMessage(text) {
+        const div = document.getElementById('chatMessages');
+        const p = document.createElement('p');
+        p.textContent = text;
+        div.appendChild(p);
+        div.scrollTop = div.scrollHeight;
+      }
+
+      function speak(text) {
+        if('speechSynthesis' in window) {
+          const utter = new SpeechSynthesisUtterance(text);
+          utter.lang = 'ru-RU';
+          utter.rate = 0.9;
+          speechSynthesis.cancel();
+          speechSynthesis.speak(utter);
+        }
+      }
+
+      container.addEventListener('click', (e) => {
+        if(isAnimating) return;
+        const rect = renderer.domElement.getBoundingClientRect();
+        mouse.x = ((e.clientX-rect.left)/rect.width)*2-1;
+        mouse.y = -((e.clientY-rect.top)/rect.height)*2+1;
+        raycaster.setFromCamera(mouse, camera);
+
+        const meshes = [];
+        doorGroups.forEach(dg => dg.group.children.forEach(c => { if(c.isMesh) meshes.push(c); }));
+        const intersects = raycaster.intersectObjects(meshes);
+        if(intersects.length) {
+          const hit = intersects[0].object;
+          let found = null;
+          for(let dg of doorGroups) if(dg.group.children.includes(hit)) { found = dg; break; }
+          if(found) {
+            isAnimating = true;
+            const start = camera.position.clone();
+            const target = new THREE.Vector3(found.x*0.6, 2, found.z*0.6+2);
+            let t=0;
+            const interval = setInterval(() => {
+              t+=0.02;
+              if(t>=1) {
+                clearInterval(interval);
+                flash.style.opacity='1';
                 setTimeout(() => {
-                    document.getElementById('preloader').classList.add('hidden');
-                }, 1200);
-            });
+                  flash.style.opacity='0';
+                  camera.position.copy(start);
+                  camera.lookAt(0,1,0);
+                  found.door.rotation.y = 0;
+                  isAnimating = false;
+                }, 800);
+                return;
+              }
+              camera.position.lerpVectors(start, target, t);
+              camera.lookAt(found.x, 1, found.z);
+              found.door.rotation.y = t*1.2;
+            }, 16);
+            addChatMessage('🚪 Открываю: ' + found.name);
+            speak('Прошу за мной, в ' + found.name);
+          }
+        }
+      });
 
-            // --- 2. THREE.JS СЦЕНА ---
-            const container = document.getElementById('three-container');
-            const scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x0a0806);
+      document.getElementById('burgerToggle').addEventListener('click', () => document.getElementById('burgerPanel').classList.toggle('open'));
+      document.getElementById('burgerClose').addEventListener('click', () => document.getElementById('burgerPanel').classList.remove('open'));
+      document.getElementById('chatSendBtn').addEventListener('click', () => {
+        const input = document.getElementById('chatInput');
+        if(input.value.trim()) {
+          addChatMessage('Вы: ' + input.value);
+          setTimeout(() => addChatMessage('Дворецкий: прекрасный выбор, сэр!'), 600);
+          speak('Прекрасный выбор, сэр!');
+          input.value='';
+        }
+      });
+      document.getElementById('microphoneBtn').addEventListener('click', () => {
+        if('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+          const recognition = new SpeechRecognition();
+          recognition.lang = 'ru-RU';
+          recognition.start();
+          recognition.onresult = (event) => {
+            const text = event.results[0][0].transcript;
+            document.getElementById('chatInput').value = text;
+            addChatMessage('🎤 Вы сказали: ' + text);
+          };
+          recognition.onerror = () => addChatMessage('🎤 Микрофон не слышит, повторите.');
+        } else {
+          addChatMessage('🎤 Ваш браузер не поддерживает голосовой ввод.');
+        }
+      });
 
-            // Камера
-            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 1.6, 4);
-            camera.lookAt(0, 1.2, -2);
+      let musicPlaying = true;
+      const bgMusic = document.getElementById('bgMusic');
+      bgMusic.volume = 0.3;
+      bgMusic.play().catch(() => {});
+      document.getElementById('music-toggle').addEventListener('click', () => {
+        if(musicPlaying) { bgMusic.pause(); musicPlaying=false; }
+        else { bgMusic.play(); musicPlaying=true; }
+        document.getElementById('music-toggle').querySelector('i').className = musicPlaying ? 'fas fa-music' : 'fas fa-volume-mute';
+      });
 
-            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.2;
-            container.appendChild(renderer.domElement);
+      const scrollContainer = document.getElementById('scrollContainer');
+      const floorIndicator = document.getElementById('floor-indicator');
+      scrollContainer.addEventListener('scroll', () => {
+        const scrollY = scrollContainer.scrollTop;
+        const floorIndex = Math.floor(scrollY / window.innerHeight) + 1;
+        floorIndicator.textContent = '🏛 Этаж ' + floorIndex;
+      });
 
-            // --- Освещение ---
-            const ambient = new THREE.AmbientLight(0x443322, 0.25);
-            scene.add(ambient);
-
-            const mainLight = new THREE.DirectionalLight(0xffe6b0, 1.2);
-            mainLight.position.set(2, 5, 3);
-            mainLight.castShadow = true;
-            mainLight.shadow.mapSize.width = 1024;
-            mainLight.shadow.mapSize.height = 1024;
-            scene.add(mainLight);
-
-            const fillLight = new THREE.DirectionalLight(0xffcc88, 0.6);
-            fillLight.position.set(-3, 2, 1);
-            scene.add(fillLight);
-
-            const backLight = new THREE.PointLight(0xd4af37, 0.5, 10);
-            backLight.position.set(0, 2, -5);
-            scene.add(backLight);
-
-            // Золотистые блики
-            const glowLights = [];
-            for (let i = 0; i < 6; i++) {
-                const angle = (i / 6) * Math.PI * 2 - Math.PI / 2;
-                const pl = new THREE.PointLight(0xd4af37, 0.3, 6);
-                pl.position.set(Math.sin(angle) * 2.2, 1.2, -2.5 + Math.cos(angle) * 1.8);
-                scene.add(pl);
-                glowLights.push(pl);
-            }
-
-            // --- Пол (тёмный мрамор) ---
-            const floorGeo = new THREE.PlaneGeometry(12, 12);
-            const floorMat = new THREE.MeshStandardMaterial({
-                color: 0x1a1512,
-                roughness: 0.3,
-                metalness: 0.7,
-                emissive: 0x0a0806,
-                emissiveIntensity: 0.1
-            });
-            const floor = new THREE.Mesh(floorGeo, floorMat);
-            floor.rotation.x = -Math.PI / 2;
-            floor.position.y = -0.01;
-            floor.receiveShadow = true;
-            scene.add(floor);
-
-            // --- Колонны ---
-            const pillarMat = new THREE.MeshStandardMaterial({
-                color: 0x3a3028,
-                roughness: 0.5,
-                metalness: 0.2,
-                emissive: 0x221a14,
-                emissiveIntensity: 0.05
-            });
-            const positions = [
-                [-2.2, 0, -1.5],
-                [2.2, 0, -1.5],
-                [-2.2, 0, -3.5],
-                [2.2, 0, -3.5]
-            ];
-            positions.forEach(pos => {
-                const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.3, 2.8, 12), pillarMat);
-                pillar.position.set(pos[0], 1.4, pos[2]);
-                pillar.castShadow = true;
-                pillar.receiveShadow = true;
-                scene.add(pillar);
-                const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.25, 0.2, 8), pillarMat);
-                cap.position.set(pos[0], 2.8, pos[2]);
-                cap.castShadow = true;
-                scene.add(cap);
-            });
-
-            // --- ДВЕРИ (6 штук полукругом) + метки ---
-            const doorNames = ['Регистрация', 'Мастерская', 'Для неё', 'Для него', 'Для дизайнеров', 'О нас'];
-            const doorGroup = new THREE.Group();
-            const doorMat = new THREE.MeshStandardMaterial({
-                color: 0x4a3a2a,
-                roughness: 0.6,
-                metalness: 0.3,
-                emissive: 0x2a1e14,
-                emissiveIntensity: 0.1
-            });
-            const doorMatGlow = new THREE.MeshStandardMaterial({
-                color: 0xd4af37,
-                emissive: 0xd4af37,
-                emissiveIntensity: 0.2,
-                transparent: true,
-                opacity: 0.15
-            });
-
-            // *** ИСПРАВЛЕНИЕ: объявляем массив ДО цикла ***
-            const doorLabels = [];
-
-            const radius = 2.6;
-            const startAngle = -Math.PI / 2 - 0.6;
-            const angleStep = 1.2 / 5;
-            for (let i = 0; i < 6; i++) {
-                const angle = startAngle + i * angleStep;
-                const x = Math.sin(angle) * radius;
-                const z = -2.2 + Math.cos(angle) * radius * 0.5;
-
-                const door = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.6, 0.1), doorMat);
-                door.position.set(x, 0.9, z);
-                door.castShadow = true;
-                door.receiveShadow = true;
-                doorGroup.add(door);
-
-                const glow = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.7, 0.05), doorMatGlow);
-                glow.position.set(x, 0.9, z + 0.08);
-                doorGroup.add(glow);
-
-                // Создаём CSS-метку
-                const labelDiv = document.createElement('div');
-                labelDiv.className = 'door-label';
-                labelDiv.textContent = doorNames[i];
-                labelDiv.dataset.index = i;
-                document.body.appendChild(labelDiv);
-                doorLabels.push({ element: labelDiv, position: new THREE.Vector3(x, 1.8, z) });
-            }
-
-            // Арка "Погреб"
-            const archMat = new THREE.MeshStandardMaterial({
-                color: 0x1a0e08,
-                roughness: 0.9,
-                metalness: 0.1,
-                emissive: 0x0a0502,
-                emissiveIntensity: 0.2
-            });
-            const archBase = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.2, 0.3), archMat);
-            archBase.position.set(0, 0.1, -2.8);
-            scene.add(archBase);
-            const archLeft = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.0, 0.3), archMat);
-            archLeft.position.set(-0.6, 0.6, -2.8);
-            scene.add(archLeft);
-            const archRight = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.0, 0.3), archMat);
-            archRight.position.set(0.6, 0.6, -2.8);
-            scene.add(archRight);
-            const archTop = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.15, 0.3), archMat);
-            archTop.position.set(0, 1.1, -2.8);
-            scene.add(archTop);
-            // Лестница
-            const stairMat = new THREE.MeshStandardMaterial({ color: 0x2a1e14, roughness: 0.8 });
-            for (let s = 0; s < 4; s++) {
-                const step = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.05, 0.2), stairMat);
-                step.position.set(0, -0.1 - s * 0.15, -2.8 + s * 0.2);
-                scene.add(step);
-            }
-            // Метка "Погреб"
-            const cellarLabel = document.createElement('div');
-            cellarLabel.className = 'door-label';
-            cellarLabel.textContent = 'Погреб';
-            cellarLabel.style.background = 'rgba(10,5,2,0.7)';
-            document.body.appendChild(cellarLabel);
-            doorLabels.push({ element: cellarLabel, position: new THREE.Vector3(0, 0.3, -2.8) });
-
-            scene.add(doorGroup);
-
-            // Декорации
-            const carpetMat = new THREE.MeshStandardMaterial({ color: 0x2a1a10, roughness: 0.9, emissive: 0x1a0e08 });
-            const carpet = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.2), carpetMat);
-            carpet.rotation.x = -Math.PI / 2;
-            carpet.position.set(0, 0.001, -0.5);
-            scene.add(carpet);
-
-            const chandelierMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, emissive: 0xd4af37, emissiveIntensity: 0.1 });
-            const chand = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8), chandelierMat);
-            chand.position.set(0, 2.8, -0.8);
-            scene.add(chand);
-            for (let c = 0; c < 6; c++) {
-                const angle = (c / 6) * Math.PI * 2;
-                const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.3), chandelierMat);
-                arm.position.set(Math.sin(angle) * 0.4, 2.6, -0.8 + Math.cos(angle) * 0.4);
-                arm.rotation.z = Math.sin(angle) * 0.3;
-                scene.add(arm);
-            }
-
-            // --- Функция обновления меток (проекция 3D->2D) ---
-            function updateLabels() {
-                doorLabels.forEach(item => {
-                    const pos = item.position.clone();
-                    pos.project(camera);
-                    const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
-                    const y = (-pos.y * 0.5 + 0.5) * window.innerHeight;
-                    item.element.style.left = x + 'px';
-                    item.element.style.top = y + 'px';
-                    if (pos.z > 1) {
-                        item.element.style.display = 'none';
-                    } else {
-                        item.element.style.display = 'block';
-                    }
-                });
-            }
-
-            // --- Анимация (рендер + обновление меток) ---
-            function animate() {
-                requestAnimationFrame(animate);
-                const time = Date.now() * 0.0005;
-                glowLights.forEach((light, idx) => {
-                    const offset = idx * 1.0;
-                    light.intensity = 0.25 + Math.sin(time + offset) * 0.1;
-                });
-                // *** ИСПРАВЛЕНИЕ: обновляем метки внутри цикла анимации ***
-                updateLabels();
-                renderer.render(scene, camera);
-            }
-            animate();
-
-            // --- Resize ---
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-            });
-
-            // --- 3. КАСТОМНЫЙ СКРОЛЛ ---
-            const scrollContainer = document.getElementById('scrollContainer');
-            scrollContainer.addEventListener('scroll', () => {
-                const scrollTop = scrollContainer.scrollTop;
-                const maxScroll = scrollContainer.scrollHeight - window.innerHeight;
-                const progress = Math.min(1, scrollTop / maxScroll);
-                camera.position.y = 1.6 + progress * 3.0;
-                camera.lookAt(0, 1.2 + progress * 1.5, -2);
-            });
-
-            // --- 4. ЧАТ И ГОЛОСОВОЙ ВВОД ---
-            const chatMessages = document.getElementById('chatMessages');
-            const chatInput = document.getElementById('chatInput');
-            const micBtn = document.getElementById('micBtn');
-
-            // Приветствие уже есть, добавим сообщение о музыке
-            setTimeout(() => {
-                addMessage('Дворецкий: Настраиваю музыкальное сопровождение...');
-            }, 800);
-
-            chatInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter' && chatInput.value.trim()) {
-                    addMessage('Вы: ' + chatInput.value.trim());
-                    setTimeout(() => {
-                        addMessage('Дворецкий: Слушаюсь, сияйте.');
-                    }, 400);
-                    chatInput.value = '';
-                }
-            });
-
-            function addMessage(text) {
-                const msg = document.createElement('div');
-                msg.textContent = text;
-                chatMessages.appendChild(msg);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            }
-
-            // Голосовой ввод с обработкой ошибок
-            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                const recognition = new SpeechRecognition();
-                recognition.lang = 'ru-RU';
-                recognition.interimResults = false;
-                recognition.continuous = false;
-
-                micBtn.addEventListener('click', () => {
-                    recognition.start();
-                    micBtn.style.borderColor = '#d4af37';
-                    micBtn.style.background = 'rgba(212,175,55,0.3)';
-                });
-
-                recognition.addEventListener('result', (event) => {
-                    const transcript = event.results[0][0].transcript;
-                    chatInput.value = transcript;
-                    setTimeout(() => {
-                        if (chatInput.value.trim()) {
-                            addMessage('Вы (голос): ' + transcript);
-                            setTimeout(() => {
-                                addMessage('Дворецкий: Ваш голос — свет.');
-                            }, 400);
-                            chatInput.value = '';
-                        }
-                    }, 300);
-                    micBtn.style.borderColor = '#5a4a3a';
-                    micBtn.style.background = 'rgba(212,175,55,0.2)';
-                });
-
-                // *** УЛУЧШЕНИЕ: обработка ошибок с выводом в чат ***
-                recognition.addEventListener('error', (event) => {
-                    console.error('Ошибка распознавания:', event.error);
-                    let errorMsg = 'Ошибка микрофона.';
-                    if (event.error === 'not-allowed') {
-                        errorMsg = 'Доступ к микрофону запрещён. Разрешите в настройках браузера.';
-                    } else if (event.error === 'no-speech') {
-                        errorMsg = 'Речь не обнаружена. Попробуйте снова.';
-                    } else {
-                        errorMsg = `Ошибка: ${event.error}. Попробуйте ввести текст.`;
-                    }
-                    addMessage(`Дворецкий: ${errorMsg}`);
-                    micBtn.style.borderColor = '#5a4a3a';
-                    micBtn.style.background = 'rgba(212,175,55,0.2)';
-                });
-            } else {
-                micBtn.style.opacity = '0.4';
-                micBtn.title = 'Голосовой ввод не поддерживается';
-            }
-
-            // --- 5. БУРГЕР-МЕНЮ ---
-            const burgerToggle = document.getElementById('burgerToggle');
-            const burgerMenu = document.getElementById('burgerMenu');
-            burgerToggle.addEventListener('click', () => {
-                burgerMenu.classList.toggle('open');
-            });
-            burgerMenu.querySelectorAll('a').forEach(link => {
-                link.addEventListener('click', () => {
-                    burgerMenu.classList.remove('open');
-                });
-            });
-
-            // --- 6. АНИМАЦИЯ ПЕРЕХОДА (двери) ---
-            document.querySelectorAll('.door-label').forEach(label => {
-                label.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    const flash = document.getElementById('transitionFlash');
-                    flash.classList.add('active');
-                    const targetZ = -1.5;
-                    const startZ = camera.position.z;
-                    let startTime = null;
-                    const duration = 600;
-                    function step(time) {
-                        if (!startTime) startTime = time;
-                        const progress = Math.min(1, (time - startTime) / duration);
-                        camera.position.z = startZ + (targetZ - startZ) * progress;
-                        camera.lookAt(0, 1.2, -2);
-                        if (progress < 1) {
-                            requestAnimationFrame(step);
-                        } else {
-                            setTimeout(() => {
-                                flash.classList.remove('active');
-                                camera.position.z = 4;
-                                camera.lookAt(0, 1.2, -2);
-                            }, 400);
-                        }
-                    }
-                    requestAnimationFrame(step);
-                });
-            });
-
-            // --- 7. МУЗЫКА ---
-            const audio = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
-            audio.loop = true;
-            audio.volume = 0.25;
-            window.addEventListener('load', () => {
-                setTimeout(() => {
-                    audio.play().catch(() => {});
-                }, 1500);
-            });
-            document.addEventListener('click', () => {
-                if (audio.paused) {
-                    audio.play().catch(() => {});
-                }
-            }, { once: true });
-
-        })();
-    </script>
+      function animate() {
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+      }
+      animate();
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth/window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    })();
+  </script>
 </body>
 </html>
