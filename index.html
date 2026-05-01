@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CI — Сияй | Холл особняка</title>
+    <!-- Three.js через CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Font Awesome для иконок -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Сброс и базовая адаптивность */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: #0a0a0a;
+            color: #f5e7d9;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+        }
+        /* Прелоадер */
+        #preloader {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: #0d0b0a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 1s ease, visibility 1s ease;
+        }
+        #preloader.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        #preloader .logo {
+            font-size: 5rem;
+            font-weight: 300;
+            letter-spacing: 0.3em;
+            color: #d4af37;
+            text-shadow: 0 0 30px rgba(212, 175, 55, 0.3);
+            margin-bottom: 1rem;
+        }
+        #preloader .sub {
+            color: #b8a28c;
+            font-size: 1.2rem;
+            letter-spacing: 0.5em;
+        }
+        .loader-bar {
+            width: 200px;
+            height: 2px;
+            background: #2a2a2a;
+            margin-top: 2rem;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .loader-bar::after {
+            content: '';
+            display: block;
+            width: 40%;
+            height: 100%;
+            background: #d4af37;
+            animation: load 1.8s ease-in-out infinite;
+        }
+        @keyframes load {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(350%); }
+        }
+
+        /* 3D-контейнер */
+        #three-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+        }
+
+        /* UI-наложение */
+        .ui-overlay {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            height: 100vh;
+            pointer-events: none;
+        }
+        .ui-overlay > * {
+            pointer-events: auto;
+        }
+
+        /* Бургер-меню */
+        .burger-wrap {
+            position: fixed;
+            top: 25px;
+            right: 25px;
+            z-index: 100;
+            cursor: pointer;
+            background: rgba(20, 18, 16, 0.6);
+            backdrop-filter: blur(6px);
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            transition: 0.3s;
+            pointer-events: auto;
+        }
+        .burger-wrap:hover {
+            border-color: #d4af37;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+        }
+        .burger-wrap i {
+            font-size: 1.6rem;
+            color: #f0e0c0;
+        }
+        .burger-menu {
+            position: fixed;
+            top: 80px;
+            right: 25px;
+            background: rgba(12, 10, 8, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid #3a2e24;
+            border-radius: 16px;
+            padding: 0.8rem 0;
+            min-width: 200px;
+            opacity: 0;
+            transform: translateY(-10px) scale(0.96);
+            transition: 0.25s ease;
+            pointer-events: none;
+            z-index: 99;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+        }
+        .burger-menu.open {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+        .burger-menu a {
+            display: block;
+            padding: 12px 24px;
+            color: #e8d9c8;
+            text-decoration: none;
+            font-size: 1rem;
+            letter-spacing: 0.05em;
+            border-left: 3px solid transparent;
+            transition: 0.2s;
+        }
+        .burger-menu a:hover {
+            background: rgba(212, 175, 55, 0.1);
+            border-left-color: #d4af37;
+            color: #f5e7d9;
+        }
+
+        /* Дворецкий и чат */
+        .butler-section {
+            position: absolute;
+            bottom: 8%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            pointer-events: auto;
+        }
+        .butler-figure {
+            width: 80px;
+            height: 120px;
+            margin: 0 auto 10px;
+            background: radial-gradient(ellipse at 50% 30%, #2a221c, #0f0d0b);
+            border-radius: 40% 40% 20% 20% / 60% 60% 20% 20%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7), inset 0 -10px 20px rgba(212, 175, 55, 0.1);
+            position: relative;
+            animation: sway 3s ease-in-out infinite;
+            transform-origin: bottom center;
+            border: 1px solid rgba(212, 175, 55, 0.2);
+        }
+        .butler-figure::after {
+            content: '';
+            position: absolute;
+            top: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle, #e8d5b0 10%, #b89a7a 80%);
+            border-radius: 50%;
+            box-shadow: 0 0 20px #d4af37;
+        }
+        @keyframes sway {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(2deg); }
+            75% { transform: rotate(-2deg); }
+        }
+        .chat-window {
+            background: rgba(10, 8, 6, 0.7);
+            backdrop-filter: blur(8px);
+            border-radius: 24px;
+            padding: 12px 16px;
+            border: 1px solid #4a3e32;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.8);
+        }
+        .chat-messages {
+            min-height: 40px;
+            max-height: 80px;
+            overflow-y: auto;
+            font-size: 0.95rem;
+            color: #f0e0d0;
+            text-align: left;
+            padding: 4px 8px;
+            margin-bottom: 8px;
+            scrollbar-width: thin;
+            scrollbar-color: #d4af37 #1a1512;
+        }
+        .chat-messages::-webkit-scrollbar {
+            width: 4px;
+        }
+        .chat-messages::-webkit-scrollbar-track {
+            background: #1a1512;
+        }
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #d4af37;
+            border-radius: 10px;
+        }
+        .chat-input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .chat-input-row input {
+            flex: 1;
+            background: rgba(30, 25, 20, 0.8);
+            border: 1px solid #5a4a3a;
+            border-radius: 40px;
+            padding: 10px 16px;
+            color: #f0e0d0;
+            font-size: 0.95rem;
+            outline: none;
+            transition: 0.2s;
+        }
+        .chat-input-row input:focus {
+            border-color: #d4af37;
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.15);
+        }
+        .chat-input-row button {
+            background: rgba(212, 175, 55, 0.2);
+            border: 1px solid #d4af37;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            color: #f0e0c0;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .chat-input-row button:hover {
+            background: rgba(212, 175, 55, 0.4);
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+        }
+        .chat-input-row button:active {
+            transform: scale(0.92);
+        }
+
+        /* Метки дверей (CSS2D-стиль) */
+        .door-label {
+            position: absolute;
+            color: #f5e7d9;
+            font-size: 0.9rem;
+            font-weight: 300;
+            letter-spacing: 0.1em;
+            text-shadow: 0 0 20px rgba(212, 175, 55, 0.7);
+            background: rgba(0,0,0,0.3);
+            padding: 4px 12px;
+            border-radius: 30px;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            white-space: nowrap;
+            pointer-events: auto;
+            transform: translate(-50%, -50%);
+            transition: 0.3s;
+            cursor: pointer;
+            z-index: 20;
+        }
+        .door-label:hover {
+            background: rgba(212, 175, 55, 0.2);
+            border-color: #d4af37;
+        }
+
+        /* Вспышка перехода */
+        .transition-flash {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            background: radial-gradient(circle, #fff8e0, #d4af37);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.6s ease;
+        }
+        .transition-flash.active {
+            opacity: 1;
+            transition: opacity 0.2s ease;
+        }
+
+        /* Кастомный скролл (вертикальный вверх) */
+        .scroll-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            z-index: 5;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            pointer-events: auto;
+        }
+        .scroll-container::-webkit-scrollbar {
+            display: none;
+        }
+        .scroll-content {
+            height: 400vh;
+            pointer-events: none;
+        }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .butler-figure {
+                width: 60px;
+                height: 90px;
+            }
+            .chat-window {
+                padding: 10px 12px;
+            }
+            .burger-menu {
+                min-width: 160px;
+                right: 15px;
+                top: 70px;
+            }
+            .burger-wrap {
+                width: 40px;
+                height: 40px;
+                right: 15px;
+                top: 15px;
+            }
+            .burger-wrap i {
+                font-size: 1.3rem;
+            }
+            .door-label {
+                font-size: 0.7rem;
+                padding: 2px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Прелоадер -->
+    <div id="preloader">
+        <div class="logo">CI</div>
+        <div class="sub">СИЯЙ</div>
+        <div class="loader-bar"></div>
+    </div>
+
+    <!-- 3D-контейнер -->
+    <div id="three-container"></div>
+
+    <!-- Кастомный скролл -->
+    <div class="scroll-container" id="scrollContainer">
+        <div class="scroll-content"></div>
+    </div>
+
+    <!-- UI-слой -->
+    <div class="ui-overlay">
+        <!-- Бургер-меню с aria-label -->
+        <div class="burger-wrap" id="burgerToggle" aria-label="Открыть меню" role="button" tabindex="0">
+            <i class="fas fa-bars"></i>
+        </div>
+        <nav class="burger-menu" id="burgerMenu">
+            <a href="#">Регистрация</a>
+            <a href="#">Мастерская</a>
+            <a href="#">Для неё</a>
+            <a href="#">Для него</a>
+            <a href="#">Для дизайнеров</a>
+            <a href="#">О нас</a>
+            <a href="#">Погреб</a>
+        </nav>
+
+        <!-- Дворецкий и чат -->
+        <div class="butler-section">
+            <div class="butler-figure"></div>
+            <div class="chat-window">
+                <div class="chat-messages" id="chatMessages">
+                    <span>👋 Добро пожаловать в особняк CI. Сияйте вместе с нами.</span>
+                </div>
+                <div class="chat-input-row">
+                    <input type="text" id="chatInput" placeholder="Спросите дворецкого..." />
+                    <button id="micBtn" aria-label="Голосовой ввод"><i class="fas fa-microphone"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Вспышка перехода -->
+    <div class="transition-flash" id="transitionFlash"></div>
+
+    <script>
+        (function() {
+            "use strict";
+
+            // --- 1. ПРЕЛОАДЕР ---
+            window.addEventListener('load', () => {
+                setTimeout(() => {
+                    document.getElementById('preloader').classList.add('hidden');
+                }, 1200);
+            });
+
+            // --- 2. THREE.JS СЦЕНА ---
+            const container = document.getElementById('three-container');
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0806);
+
+            // Камера
+            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 1.6, 4);
+            camera.lookAt(0, 1.2, -2);
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
+            container.appendChild(renderer.domElement);
+
+            // --- Освещение ---
+            const ambient = new THREE.AmbientLight(0x443322, 0.25);
+            scene.add(ambient);
+
+            const mainLight = new THREE.DirectionalLight(0xffe6b0, 1.2);
+            mainLight.position.set(2, 5, 3);
+            mainLight.castShadow = true;
+            mainLight.shadow.mapSize.width = 1024;
+            mainLight.shadow.mapSize.height = 1024;
+            scene.add(mainLight);
+
+            const fillLight = new THREE.DirectionalLight(0xffcc88, 0.6);
+            fillLight.position.set(-3, 2, 1);
+            scene.add(fillLight);
+
+            const backLight = new THREE.PointLight(0xd4af37, 0.5, 10);
+            backLight.position.set(0, 2, -5);
+            scene.add(backLight);
+
+            // Золотистые блики
+            const glowLights = [];
+            for (let i = 0; i < 6; i++) {
+                const angle = (i / 6) * Math.PI * 2 - Math.PI / 2;
+                const pl = new THREE.PointLight(0xd4af37, 0.3, 6);
+                pl.position.set(Math.sin(angle) * 2.2, 1.2, -2.5 + Math.cos(angle) * 1.8);
+                scene.add(pl);
+                glowLights.push(pl);
+            }
+
+            // --- Пол (тёмный мрамор) ---
+            const floorGeo = new THREE.PlaneGeometry(12, 12);
+            const floorMat = new THREE.MeshStandardMaterial({
+                color: 0x1a1512,
+                roughness: 0.3,
+                metalness: 0.7,
+                emissive: 0x0a0806,
+                emissiveIntensity: 0.1
+            });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = -0.01;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // --- Колонны ---
+            const pillarMat = new THREE.MeshStandardMaterial({
+                color: 0x3a3028,
+                roughness: 0.5,
+                metalness: 0.2,
+                emissive: 0x221a14,
+                emissiveIntensity: 0.05
+            });
+            const positions = [
+                [-2.2, 0, -1.5],
+                [2.2, 0, -1.5],
+                [-2.2, 0, -3.5],
+                [2.2, 0, -3.5]
+            ];
+            positions.forEach(pos => {
+                const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.3, 2.8, 12), pillarMat);
+                pillar.position.set(pos[0], 1.4, pos[2]);
+                pillar.castShadow = true;
+                pillar.receiveShadow = true;
+                scene.add(pillar);
+                const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.25, 0.2, 8), pillarMat);
+                cap.position.set(pos[0], 2.8, pos[2]);
+                cap.castShadow = true;
+                scene.add(cap);
+            });
+
+            // --- ДВЕРИ (6 штук полукругом) + метки ---
+            const doorNames = ['Регистрация', 'Мастерская', 'Для неё', 'Для него', 'Для дизайнеров', 'О нас'];
+            const doorGroup = new THREE.Group();
+            const doorMat = new THREE.MeshStandardMaterial({
+                color: 0x4a3a2a,
+                roughness: 0.6,
+                metalness: 0.3,
+                emissive: 0x2a1e14,
+                emissiveIntensity: 0.1
+            });
+            const doorMatGlow = new THREE.MeshStandardMaterial({
+                color: 0xd4af37,
+                emissive: 0xd4af37,
+                emissiveIntensity: 0.2,
+                transparent: true,
+                opacity: 0.15
+            });
+
+            // *** ИСПРАВЛЕНИЕ: объявляем массив ДО цикла ***
+            const doorLabels = [];
+
+            const radius = 2.6;
+            const startAngle = -Math.PI / 2 - 0.6;
+            const angleStep = 1.2 / 5;
+            for (let i = 0; i < 6; i++) {
+                const angle = startAngle + i * angleStep;
+                const x = Math.sin(angle) * radius;
+                const z = -2.2 + Math.cos(angle) * radius * 0.5;
+
+                const door = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.6, 0.1), doorMat);
+                door.position.set(x, 0.9, z);
+                door.castShadow = true;
+                door.receiveShadow = true;
+                doorGroup.add(door);
+
+                const glow = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.7, 0.05), doorMatGlow);
+                glow.position.set(x, 0.9, z + 0.08);
+                doorGroup.add(glow);
+
+                // Создаём CSS-метку
+                const labelDiv = document.createElement('div');
+                labelDiv.className = 'door-label';
+                labelDiv.textContent = doorNames[i];
+                labelDiv.dataset.index = i;
+                document.body.appendChild(labelDiv);
+                doorLabels.push({ element: labelDiv, position: new THREE.Vector3(x, 1.8, z) });
+            }
+
+            // Арка "Погреб"
+            const archMat = new THREE.MeshStandardMaterial({
+                color: 0x1a0e08,
+                roughness: 0.9,
+                metalness: 0.1,
+                emissive: 0x0a0502,
+                emissiveIntensity: 0.2
+            });
+            const archBase = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.2, 0.3), archMat);
+            archBase.position.set(0, 0.1, -2.8);
+            scene.add(archBase);
+            const archLeft = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.0, 0.3), archMat);
+            archLeft.position.set(-0.6, 0.6, -2.8);
+            scene.add(archLeft);
+            const archRight = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.0, 0.3), archMat);
+            archRight.position.set(0.6, 0.6, -2.8);
+            scene.add(archRight);
+            const archTop = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.15, 0.3), archMat);
+            archTop.position.set(0, 1.1, -2.8);
+            scene.add(archTop);
+            // Лестница
+            const stairMat = new THREE.MeshStandardMaterial({ color: 0x2a1e14, roughness: 0.8 });
+            for (let s = 0; s < 4; s++) {
+                const step = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.05, 0.2), stairMat);
+                step.position.set(0, -0.1 - s * 0.15, -2.8 + s * 0.2);
+                scene.add(step);
+            }
+            // Метка "Погреб"
+            const cellarLabel = document.createElement('div');
+            cellarLabel.className = 'door-label';
+            cellarLabel.textContent = 'Погреб';
+            cellarLabel.style.background = 'rgba(10,5,2,0.7)';
+            document.body.appendChild(cellarLabel);
+            doorLabels.push({ element: cellarLabel, position: new THREE.Vector3(0, 0.3, -2.8) });
+
+            scene.add(doorGroup);
+
+            // Декорации
+            const carpetMat = new THREE.MeshStandardMaterial({ color: 0x2a1a10, roughness: 0.9, emissive: 0x1a0e08 });
+            const carpet = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.2), carpetMat);
+            carpet.rotation.x = -Math.PI / 2;
+            carpet.position.set(0, 0.001, -0.5);
+            scene.add(carpet);
+
+            const chandelierMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, emissive: 0xd4af37, emissiveIntensity: 0.1 });
+            const chand = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8), chandelierMat);
+            chand.position.set(0, 2.8, -0.8);
+            scene.add(chand);
+            for (let c = 0; c < 6; c++) {
+                const angle = (c / 6) * Math.PI * 2;
+                const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.3), chandelierMat);
+                arm.position.set(Math.sin(angle) * 0.4, 2.6, -0.8 + Math.cos(angle) * 0.4);
+                arm.rotation.z = Math.sin(angle) * 0.3;
+                scene.add(arm);
+            }
+
+            // --- Функция обновления меток (проекция 3D->2D) ---
+            function updateLabels() {
+                doorLabels.forEach(item => {
+                    const pos = item.position.clone();
+                    pos.project(camera);
+                    const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
+                    const y = (-pos.y * 0.5 + 0.5) * window.innerHeight;
+                    item.element.style.left = x + 'px';
+                    item.element.style.top = y + 'px';
+                    if (pos.z > 1) {
+                        item.element.style.display = 'none';
+                    } else {
+                        item.element.style.display = 'block';
+                    }
+                });
+            }
+
+            // --- Анимация (рендер + обновление меток) ---
+            function animate() {
+                requestAnimationFrame(animate);
+                const time = Date.now() * 0.0005;
+                glowLights.forEach((light, idx) => {
+                    const offset = idx * 1.0;
+                    light.intensity = 0.25 + Math.sin(time + offset) * 0.1;
+                });
+                // *** ИСПРАВЛЕНИЕ: обновляем метки внутри цикла анимации ***
+                updateLabels();
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            // --- Resize ---
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            // --- 3. КАСТОМНЫЙ СКРОЛЛ ---
+            const scrollContainer = document.getElementById('scrollContainer');
+            scrollContainer.addEventListener('scroll', () => {
+                const scrollTop = scrollContainer.scrollTop;
+                const maxScroll = scrollContainer.scrollHeight - window.innerHeight;
+                const progress = Math.min(1, scrollTop / maxScroll);
+                camera.position.y = 1.6 + progress * 3.0;
+                camera.lookAt(0, 1.2 + progress * 1.5, -2);
+            });
+
+            // --- 4. ЧАТ И ГОЛОСОВОЙ ВВОД ---
+            const chatMessages = document.getElementById('chatMessages');
+            const chatInput = document.getElementById('chatInput');
+            const micBtn = document.getElementById('micBtn');
+
+            // Приветствие уже есть, добавим сообщение о музыке
+            setTimeout(() => {
+                addMessage('Дворецкий: Настраиваю музыкальное сопровождение...');
+            }, 800);
+
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && chatInput.value.trim()) {
+                    addMessage('Вы: ' + chatInput.value.trim());
+                    setTimeout(() => {
+                        addMessage('Дворецкий: Слушаюсь, сияйте.');
+                    }, 400);
+                    chatInput.value = '';
+                }
+            });
+
+            function addMessage(text) {
+                const msg = document.createElement('div');
+                msg.textContent = text;
+                chatMessages.appendChild(msg);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            // Голосовой ввод с обработкой ошибок
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                const recognition = new SpeechRecognition();
+                recognition.lang = 'ru-RU';
+                recognition.interimResults = false;
+                recognition.continuous = false;
+
+                micBtn.addEventListener('click', () => {
+                    recognition.start();
+                    micBtn.style.borderColor = '#d4af37';
+                    micBtn.style.background = 'rgba(212,175,55,0.3)';
+                });
+
+                recognition.addEventListener('result', (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    chatInput.value = transcript;
+                    setTimeout(() => {
+                        if (chatInput.value.trim()) {
+                            addMessage('Вы (голос): ' + transcript);
+                            setTimeout(() => {
+                                addMessage('Дворецкий: Ваш голос — свет.');
+                            }, 400);
+                            chatInput.value = '';
+                        }
+                    }, 300);
+                    micBtn.style.borderColor = '#5a4a3a';
+                    micBtn.style.background = 'rgba(212,175,55,0.2)';
+                });
+
+                // *** УЛУЧШЕНИЕ: обработка ошибок с выводом в чат ***
+                recognition.addEventListener('error', (event) => {
+                    console.error('Ошибка распознавания:', event.error);
+                    let errorMsg = 'Ошибка микрофона.';
+                    if (event.error === 'not-allowed') {
+                        errorMsg = 'Доступ к микрофону запрещён. Разрешите в настройках браузера.';
+                    } else if (event.error === 'no-speech') {
+                        errorMsg = 'Речь не обнаружена. Попробуйте снова.';
+                    } else {
+                        errorMsg = `Ошибка: ${event.error}. Попробуйте ввести текст.`;
+                    }
+                    addMessage(`Дворецкий: ${errorMsg}`);
+                    micBtn.style.borderColor = '#5a4a3a';
+                    micBtn.style.background = 'rgba(212,175,55,0.2)';
+                });
+            } else {
+                micBtn.style.opacity = '0.4';
+                micBtn.title = 'Голосовой ввод не поддерживается';
+            }
+
+            // --- 5. БУРГЕР-МЕНЮ ---
+            const burgerToggle = document.getElementById('burgerToggle');
+            const burgerMenu = document.getElementById('burgerMenu');
+            burgerToggle.addEventListener('click', () => {
+                burgerMenu.classList.toggle('open');
+            });
+            burgerMenu.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', () => {
+                    burgerMenu.classList.remove('open');
+                });
+            });
+
+            // --- 6. АНИМАЦИЯ ПЕРЕХОДА (двери) ---
+            document.querySelectorAll('.door-label').forEach(label => {
+                label.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const flash = document.getElementById('transitionFlash');
+                    flash.classList.add('active');
+                    const targetZ = -1.5;
+                    const startZ = camera.position.z;
+                    let startTime = null;
+                    const duration = 600;
+                    function step(time) {
+                        if (!startTime) startTime = time;
+                        const progress = Math.min(1, (time - startTime) / duration);
+                        camera.position.z = startZ + (targetZ - startZ) * progress;
+                        camera.lookAt(0, 1.2, -2);
+                        if (progress < 1) {
+                            requestAnimationFrame(step);
+                        } else {
+                            setTimeout(() => {
+                                flash.classList.remove('active');
+                                camera.position.z = 4;
+                                camera.lookAt(0, 1.2, -2);
+                            }, 400);
+                        }
+                    }
+                    requestAnimationFrame(step);
+                });
+            });
+
+            // --- 7. МУЗЫКА ---
+            const audio = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
+            audio.loop = true;
+            audio.volume = 0.25;
+            window.addEventListener('load', () => {
+                setTimeout(() => {
+                    audio.play().catch(() => {});
+                }, 1500);
+            });
+            document.addEventListener('click', () => {
+                if (audio.paused) {
+                    audio.play().catch(() => {});
+                }
+            }, { once: true });
+
+        })();
+    </script>
+</body>
+</html>
