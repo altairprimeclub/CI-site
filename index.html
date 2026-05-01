@@ -1,456 +1,963 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>CI — Сияй. Особняк премиальной мебели</title>
-  <!-- Three.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body {
-      font-family:'Segoe UI','Roboto',system-ui,sans-serif;
-      background:#0a0a0a; color:#f5e7d9;
-      overflow:hidden; height:100vh;
-    }
-    #preloader {
-      position:fixed; inset:0; z-index:9999;
-      background:#0a0a0a;
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      transition:opacity 1.2s, visibility 1.2s;
-    }
-    #preloader.hidden { opacity:0; visibility:hidden; pointer-events:none; }
-    .preloader-logo {
-      font-size:5rem; font-weight:300; letter-spacing:0.3em;
-      color:#d4af37; text-shadow:0 0 30px rgba(212,175,55,0.3);
-      border:2px solid rgba(212,175,55,0.3); padding:0.5rem 2rem; margin-bottom:1rem;
-    }
-    .preloader-sub { font-size:1.2rem; letter-spacing:0.6em; color:#b8a07a; text-transform:uppercase; }
-    .preloader-spinner {
-      margin-top:2rem; width:40px; height:40px;
-      border:3px solid rgba(212,175,55,0.1); border-top:3px solid #d4af37;
-      border-radius:50%; animation:spin 1s linear infinite;
-    }
-    @keyframes spin { to { transform:rotate(360deg); } }
-    #three-container { position:fixed; inset:0; z-index:0; pointer-events:none; }
-    .scroll-container {
-      position:absolute; top:0; left:0; width:100%; height:100vh;
-      overflow-y:scroll; overflow-x:hidden;
-      scrollbar-width:thin; scrollbar-color:#d4af37 #1a1a1a;
-      pointer-events:auto; scroll-behavior:smooth; z-index:10;
-    }
-    .scroll-container::-webkit-scrollbar { width:6px; }
-    .scroll-container::-webkit-scrollbar-track { background:#1a1a1a; }
-    .scroll-container::-webkit-scrollbar-thumb { background:#d4af37; border-radius:10px; }
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>CI — Сияй. Особняк премиальной мебели</title>
+    <!-- Three.js CDN для 3D-сцены -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Font Awesome для иконок -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Cormorant Garamond', 'Playfair Display', 'Segoe UI', serif;
+            background: #0a0a0a;
+            color: #f5e7d9;
+            overflow: hidden;
+            height: 100vh;
+            user-select: none;
+        }
+        /* Премиальный прелоадер */
+        #preloader {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: #0a0a0a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 1.2s ease, visibility 1.2s ease;
+        }
+        #preloader.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        .preloader-logo {
+            font-size: 6rem;
+            font-weight: 200;
+            letter-spacing: 0.4em;
+            color: #d4af37;
+            text-shadow: 0 0 40px rgba(212, 175, 55, 0.4);
+            border: 2px solid rgba(212, 175, 55, 0.4);
+            padding: 0.8rem 2.5rem;
+            margin-bottom: 1rem;
+            font-family: 'Cormorant Garamond', serif;
+        }
+        .preloader-sub {
+            font-size: 1.4rem;
+            letter-spacing: 0.8em;
+            color: #b8a07a;
+            text-transform: uppercase;
+            font-weight: 300;
+        }
+        .preloader-spinner {
+            margin-top: 2.5rem;
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(212, 175, 55, 0.08);
+            border-top: 3px solid #d4af37;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-    .floor {
-      height:100vh; width:100%; display:flex; align-items:center; justify-content:center;
-      font-size:2rem; color:rgba(245,231,217,0.15); text-transform:uppercase;
-      letter-spacing:0.3em; border-bottom:1px solid rgba(212,175,55,0.05);
-      background:transparent; pointer-events:none; position:relative;
-    }
-    .floor span {
-      background:rgba(10,10,10,0.5); backdrop-filter:blur(4px);
-      padding:0.5rem 2rem; border-radius:40px; border:1px solid rgba(212,175,55,0.1);
-    }
-    .butler-area {
-      position:absolute; top:8%; left:50%; transform:translateX(-50%);
-      z-index:25; text-align:center; width:90%; max-width:600px; pointer-events:auto;
-    }
-    .butler-figure {
-      width:80px; height:120px; margin:0 auto;
-      filter:drop-shadow(0 10px 30px rgba(212,175,55,0.3));
-      animation:floatButler 4s ease-in-out infinite;
-    }
-    @keyframes floatButler { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-8px); } }
-    .chat-window {
-      background:rgba(10,10,10,0.7); backdrop-filter:blur(12px);
-      border:1px solid rgba(212,175,55,0.2); border-radius:24px;
-      padding:1rem 1.5rem; margin-top:0.5rem; box-shadow:0 8px 40px rgba(0,0,0,0.7);
-    }
-    .chat-messages {
-      min-height:60px; max-height:100px; overflow-y:auto;
-      font-size:0.95rem; color:#f0e3d4; text-align:left; margin-bottom:0.5rem;
-    }
-    .chat-input-group { display:flex; gap:0.5rem; align-items:center; }
-    .chat-input-group input {
-      flex:1; background:rgba(255,255,255,0.05); border:1px solid #3a322a;
-      border-radius:40px; padding:0.6rem 1.2rem; color:#f5e7d9; font-size:0.9rem; outline:none;
-    }
-    .chat-input-group input:focus { border-color:#d4af37; }
-    .chat-input-group button {
-      background:transparent; border:1px solid #d4af37; color:#d4af37;
-      border-radius:50%; width:40px; height:40px; font-size:1.1rem; cursor:pointer;
-    }
-    .chat-input-group button:hover { background:#d4af37; color:#0a0a0a; }
-    .microphone-btn { border:1px solid #b8a07a !important; color:#b8a07a !important; }
-    .doors-panel {
-      position:absolute; bottom:12%; left:50%; transform:translateX(-50%);
-      display:flex; gap:1.2rem; flex-wrap:wrap; justify-content:center;
-      z-index:20; width:90%; max-width:1100px; pointer-events:auto;
-    }
-    .door-item {
-      background:rgba(20,18,15,0.7); backdrop-filter:blur(6px);
-      border:1px solid rgba(212,175,55,0.25); border-radius:12px;
-      padding:0.6rem 1.2rem; color:#f5e7d9; font-size:0.9rem; letter-spacing:0.1em;
-      text-transform:uppercase; cursor:pointer; transition:0.3s; min-width:100px; text-align:center;
-    }
-    .door-item:hover {
-      border-color:#d4af37; background:rgba(40,35,28,0.8);
-      box-shadow:0 0 30px rgba(212,175,55,0.2); transform:scale(1.05);
-    }
-    .door-item i { margin-right:8px; color:#d4af37; }
-    .door-label { display:block; font-size:0.7rem; color:#b8a07a; margin-top:4px; }
-    .door-cellar {
-      position:absolute; bottom:2%; left:50%; transform:translateX(-50%);
-      z-index:20; background:rgba(10,10,10,0.7); backdrop-filter:blur(6px);
-      border:1px solid #5a4a3a; border-radius:30px;
-      padding:0.5rem 2rem; color:#b8a07a; font-size:0.9rem; letter-spacing:0.2em; cursor:pointer;
-    }
-    .door-cellar:hover { border-color:#d4af37; color:#d4af37; }
-    .burger-wrap {
-      position:fixed; top:25px; right:25px; z-index:100; cursor:pointer;
-      background:rgba(10,10,10,0.6); backdrop-filter:blur(8px);
-      border:1px solid #d4af37; border-radius:12px; padding:10px 14px;
-    }
-    .burger-wrap i { font-size:1.8rem; color:#d4af37; }
-    .burger-panel {
-      position:fixed; top:0; right:-320px; width:280px; height:100vh;
-      background:rgba(10,10,10,0.92); backdrop-filter:blur(20px);
-      border-left:1px solid rgba(212,175,55,0.2); z-index:99; padding:6rem 2rem 2rem;
-      transition:right 0.5s cubic-bezier(0.22,1,0.36,1);
-    }
-    .burger-panel.open { right:0; }
-    .burger-panel a {
-      display:block; color:#e8dccc; text-decoration:none; font-size:1.2rem;
-      padding:0.8rem 0; border-bottom:1px solid rgba(212,175,55,0.1); letter-spacing:0.1em;
-    }
-    .burger-panel a:hover { color:#d4af37; padding-left:10px; }
-    .burger-panel .close-btn { position:absolute; top:20px; right:20px; font-size:2rem; color:#b8a07a; cursor:pointer; }
-    #music-toggle {
-      position:fixed; bottom:25px; right:25px; z-index:50;
-      background:rgba(10,10,10,0.6); backdrop-filter:blur(8px);
-      border:1px solid #d4af37; border-radius:50%; width:50px; height:50px;
-      color:#d4af37; font-size:1.4rem; cursor:pointer;
-    }
-    #floor-indicator {
-      position:fixed; bottom:100px; left:20px; z-index:50;
-      background:rgba(10,10,10,0.6); backdrop-filter:blur(8px);
-      border:1px solid #d4af37; border-radius:30px;
-      padding:0.5rem 1.2rem; color:#d4af37; font-size:1rem; letter-spacing:0.1em;
-    }
-    @media (max-width:700px) {
-      .doors-panel { gap:0.6rem; bottom:16%; }
-      .door-item { min-width:70px; font-size:0.7rem; padding:0.4rem 0.8rem; }
-      .butler-figure { width:60px; height:90px; }
-    }
-  </style>
+        /* 3D-контейнер занимает весь экран */
+        #three-container {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Лёгкий виньет-эффект для глубины */
+        .vignette {
+            position: fixed;
+            inset: 0;
+            z-index: 5;
+            background: radial-gradient(circle, transparent 50%, rgba(0,0,0,0.65) 100%);
+            pointer-events: none;
+        }
+
+        /* Основной UI-слой поверх 3D */
+        .ui-layer {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            height: 100vh;
+            pointer-events: none;
+        }
+
+        /* Дворецкий и чат */
+        .butler-area {
+            position: absolute;
+            top: 6%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            text-align: center;
+            width: 90%;
+            max-width: 650px;
+            pointer-events: auto;
+        }
+        .butler-figure {
+            width: 100px;
+            height: 150px;
+            margin: 0 auto;
+            filter: drop-shadow(0 15px 35px rgba(212, 175, 55, 0.45));
+            animation: floatButler 5s ease-in-out infinite;
+        }
+        .butler-figure svg {
+            width: 100%;
+            height: 100%;
+        }
+        @keyframes floatButler {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .chat-window {
+            background: rgba(8, 8, 8, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(212, 175, 55, 0.25);
+            border-radius: 28px;
+            padding: 1.2rem 1.8rem;
+            margin-top: 0.8rem;
+            box-shadow: 0 12px 45px rgba(0,0,0,0.75);
+        }
+        .chat-messages {
+            min-height: 70px;
+            max-height: 110px;
+            overflow-y: auto;
+            font-size: 1rem;
+            color: #f0e3d4;
+            text-align: left;
+            margin-bottom: 0.7rem;
+            scrollbar-width: thin;
+            scrollbar-color: #d4af37 rgba(0,0,0,0.3);
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .chat-messages p {
+            margin: 0.25rem 0;
+            padding: 0.3rem 0;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.06);
+        }
+        .chat-messages p:last-child {
+            border-bottom: none;
+        }
+        .chat-input-group {
+            display: flex;
+            gap: 0.7rem;
+            align-items: center;
+        }
+        .chat-input-group input {
+            flex: 1;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 40px;
+            padding: 0.7rem 1.4rem;
+            color: #f5e7d9;
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.3s ease;
+            font-family: 'Segoe UI', sans-serif;
+            letter-spacing: 0.02em;
+        }
+        .chat-input-group input:focus {
+            border-color: #d4af37;
+            box-shadow: 0 0 18px rgba(212, 175, 55, 0.15);
+            background: rgba(255,255,255,0.07);
+        }
+        .chat-input-group button {
+            background: transparent;
+            border: 1px solid #d4af37;
+            color: #d4af37;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .chat-input-group button:hover {
+            background: #d4af37;
+            color: #0a0a0a;
+            box-shadow: 0 0 22px rgba(212, 175, 55, 0.5);
+        }
+        .microphone-btn {
+            border-color: #b8a07a !important;
+            color: #b8a07a !important;
+        }
+        .microphone-btn:hover {
+            background: #b8a07a !important;
+            color: #0a0a0a !important;
+        }
+
+        /* Панель дверей */
+        .doors-panel {
+            position: absolute;
+            bottom: 13%;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            z-index: 20;
+            width: 90%;
+            max-width: 1150px;
+            pointer-events: auto;
+        }
+        .door-item {
+            background: rgba(15, 12, 10, 0.75);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 16px;
+            padding: 0.8rem 1.5rem;
+            color: #f5e7d9;
+            font-size: 0.95rem;
+            font-weight: 400;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1.2);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.6);
+            min-width: 120px;
+            text-align: center;
+            position: relative;
+            font-family: 'Cormorant Garamond', serif;
+        }
+        .door-item:hover {
+            border-color: #d4af37;
+            background: rgba(30, 25, 18, 0.85);
+            box-shadow: 0 0 35px rgba(212, 175, 55, 0.35);
+            transform: translateY(-5px) scale(1.03);
+        }
+        .door-item i {
+            margin-right: 10px;
+            color: #d4af37;
+            font-size: 1.1rem;
+        }
+        .door-label {
+            display: block;
+            font-size: 0.65rem;
+            color: #b8a07a;
+            margin-top: 6px;
+            letter-spacing: 0.25em;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        /* Вход в погреб */
+        .door-cellar {
+            position: absolute;
+            bottom: 3%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            background: rgba(10, 10, 10, 0.75);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid #5a4a3a;
+            border-radius: 35px;
+            padding: 0.6rem 2.2rem;
+            color: #b8a07a;
+            font-size: 0.95rem;
+            letter-spacing: 0.25em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            pointer-events: auto;
+            font-family: 'Cormorant Garamond', serif;
+        }
+        .door-cellar:hover {
+            border-color: #d4af37;
+            color: #d4af37;
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.25);
+        }
+
+        /* Бургер-меню */
+        .burger-wrap {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            z-index: 100;
+            cursor: pointer;
+            background: rgba(10,10,10,0.65);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid #d4af37;
+            border-radius: 16px;
+            padding: 12px 16px;
+            transition: all 0.3s ease;
+            pointer-events: auto;
+        }
+        .burger-wrap:hover {
+            background: rgba(212,175,55,0.2);
+        }
+        .burger-wrap i {
+            font-size: 1.9rem;
+            color: #d4af37;
+        }
+        .burger-panel {
+            position: fixed;
+            top: 0;
+            right: -330px;
+            width: 300px;
+            height: 100vh;
+            background: rgba(6, 6, 6, 0.94);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-left: 1px solid rgba(212,175,55,0.25);
+            z-index: 99;
+            padding: 6rem 2.2rem 2.2rem;
+            transition: right 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+            pointer-events: auto;
+            box-shadow: -15px 0 50px rgba(0,0,0,0.8);
+        }
+        .burger-panel.open {
+            right: 0;
+        }
+        .burger-panel a {
+            display: block;
+            color: #e8dccc;
+            text-decoration: none;
+            font-size: 1.25rem;
+            padding: 0.9rem 0;
+            border-bottom: 1px solid rgba(212,175,55,0.08);
+            letter-spacing: 0.12em;
+            transition: all 0.3s ease;
+            font-family: 'Cormorant Garamond', serif;
+        }
+        .burger-panel a:hover {
+            color: #d4af37;
+            padding-left: 12px;
+        }
+        .burger-panel .close-btn {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            font-size: 2.2rem;
+            color: #b8a07a;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        .burger-panel .close-btn:hover {
+            color: #d4af37;
+        }
+
+        /* Индикатор этажа и музыка */
+        #floor-indicator {
+            position: fixed;
+            bottom: 110px;
+            left: 25px;
+            z-index: 50;
+            background: rgba(10,10,10,0.65);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid #d4af37;
+            border-radius: 30px;
+            padding: 0.5rem 1.4rem;
+            color: #d4af37;
+            font-size: 1rem;
+            letter-spacing: 0.1em;
+            pointer-events: none;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        #music-toggle {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 50;
+            background: rgba(10,10,10,0.65);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid #d4af37;
+            border-radius: 50%;
+            width: 52px;
+            height: 52px;
+            color: #d4af37;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+        }
+        #music-toggle:hover {
+            background: #d4af37;
+            color: #0a0a0a;
+        }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .doors-panel {
+                gap: 0.8rem;
+                bottom: 18%;
+            }
+            .door-item {
+                min-width: 80px;
+                font-size: 0.7rem;
+                padding: 0.5rem 1rem;
+            }
+            .butler-figure {
+                width: 70px;
+                height: 105px;
+            }
+            .chat-window {
+                padding: 0.9rem 1.2rem;
+            }
+            .burger-panel {
+                width: 270px;
+            }
+            .preloader-logo {
+                font-size: 3.5rem;
+                padding: 0.5rem 1.5rem;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div id="preloader"><div class="preloader-logo">CI</div><div class="preloader-sub">сияй</div><div class="preloader-spinner"></div></div>
-  <div id="three-container"></div>
-  <div class="scroll-container" id="scrollContainer">
-    <div class="floor" style="position:relative; pointer-events:none;">
-      <div class="butler-area">
-        <div class="butler-figure">
-          <svg viewBox="0 0 80 120" xmlns="http://www.w3.org/2000/svg">
-            <rect x="25" y="5" width="30" height="20" fill="#1a1a1a" stroke="#d4af37" stroke-width="0.5"/>
-            <rect x="20" y="20" width="40" height="5" fill="#2a2a2a" stroke="#d4af37" stroke-width="0.3"/>
-            <ellipse cx="40" cy="35" rx="12" ry="14" fill="#e8d5c0" stroke="#d4af37" stroke-width="0.3"/>
-            <circle cx="35" cy="33" r="1.5" fill="#1a1a1a"/><circle cx="45" cy="33" r="1.5" fill="#1a1a1a"/>
-            <path d="M30 40 Q40 44 50 40" stroke="#1a1a1a" stroke-width="1.5" fill="none"/>
-            <path d="M20 50 L15 110 L65 110 L60 50 Z" fill="#1a1a1a" stroke="#d4af37" stroke-width="0.3"/>
-            <path d="M30 50 L40 65 L50 50 Z" fill="#f0e3d4" stroke="#d4af37" stroke-width="0.2"/>
-            <rect x="35" y="48" width="10" height="4" fill="#d4af37"/>
-            <path d="M20 55 L10 80 L15 82 L25 60" fill="#1a1a1a" stroke="#d4af37" stroke-width="0.2"/>
-            <path d="M60 55 L70 80 L65 82 L55 60" fill="#1a1a1a" stroke="#d4af37" stroke-width="0.2"/>
-            <circle cx="12" cy="82" r="3" fill="#e8d5c0"/><circle cx="68" cy="82" r="3" fill="#e8d5c0"/>
-          </svg>
-        </div>
-        <div class="chat-window">
-          <div class="chat-messages" id="chatMessages">
-            <p>👋 Добро пожаловать в особняк CI. Я ваш проводник в мир премиальной мебели. Куда желаете направиться?</p>
-          </div>
-          <div class="chat-input-group">
-            <input type="text" id="chatInput" placeholder="Напишите дворецкому..." />
-            <button id="chatSendBtn"><i class="fas fa-paper-plane"></i></button>
-            <button id="microphoneBtn" class="microphone-btn"><i class="fas fa-microphone"></i></button>
-          </div>
-        </div>
-      </div>
-      <div class="doors-panel">
-        <div class="door-item" data-door="registration"><i class="fas fa-address-card"></i> Регистрация <span class="door-label">вход</span></div>
-        <div class="door-item" data-door="workshop"><i class="fas fa-tools"></i> Мастерская <span class="door-label">творчество</span></div>
-        <div class="door-item" data-door="for-her"><i class="fas fa-venus"></i> Для неё <span class="door-label">элегантность</span></div>
-        <div class="door-item" data-door="for-him"><i class="fas fa-mars"></i> Для него <span class="door-label">стиль</span></div>
-        <div class="door-item" data-door="designers"><i class="fas fa-pencil-ruler"></i> Дизайнерам <span class="door-label">вдохновение</span></div>
-        <div class="door-item" data-door="about"><i class="fas fa-info-circle"></i> О нас <span class="door-label">история</span></div>
-      </div>
-      <div class="door-cellar"><i class="fas fa-wine-bottle"></i> Погреб</div>
+    <!-- Прелоадер -->
+    <div id="preloader">
+        <div class="preloader-logo">CI</div>
+        <div class="preloader-sub">сияй</div>
+        <div class="preloader-spinner"></div>
     </div>
-    <div class="floor"><span>✨ 2 этаж — Красная комната</span></div>
-    <div class="floor"><span>💎 3 этаж — Синяя комната</span></div>
-    <div class="floor"><span>🌿 4 этаж — Зелёная комната</span></div>
-    <div class="floor"><span>🔮 5 этаж — Пурпурная комната</span></div>
-    <div class="floor"><span>🌊 6 этаж — Голубая комната</span></div>
-    <div class="floor"><span>🌟 7 этаж — Жёлтая комната</span></div>
-    <div class="floor"><span>🏆 Избранное · Оплата · Контакты</span></div>
-  </div>
-  <div class="burger-wrap" id="burgerToggle"><i class="fas fa-bars"></i></div>
-  <div class="burger-panel" id="burgerPanel">
-    <span class="close-btn" id="burgerClose"><i class="fas fa-times"></i></span>
-    <a href="#"><i class="fas fa-home"></i> Холл</a>
-    <a href="#"><i class="fas fa-address-card"></i> Регистрация</a>
-    <a href="#"><i class="fas fa-tools"></i> Мастерская</a>
-    <a href="#"><i class="fas fa-venus"></i> Для неё</a>
-    <a href="#"><i class="fas fa-mars"></i> Для него</a>
-    <a href="#"><i class="fas fa-pencil-ruler"></i> Дизайнерам</a>
-    <a href="#"><i class="fas fa-info-circle"></i> О нас</a>
-    <a href="#"><i class="fas fa-wine-bottle"></i> Погреб</a>
-    <hr style="border-color:#2a221a; margin:1rem 0;">
-    <a href="#"><i class="fas fa-star"></i> Избранное</a>
-    <a href="#"><i class="fas fa-credit-card"></i> Оплата</a>
-  </div>
-  <button id="music-toggle"><i class="fas fa-music"></i></button>
-  <audio id="bgMusic" loop preload="auto" style="display:none;" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"></audio>
-  <div id="floor-indicator">🏛 Этаж 1</div>
 
-  <script>
-    (function() {
-      const preloader = document.getElementById('preloader');
-      window.addEventListener('load', () => setTimeout(() => preloader.classList.add('hidden'), 800));
+    <!-- 3D-сцена -->
+    <div id="three-container"></div>
 
-      const container = document.getElementById('three-container');
-      const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x0a0a0a);
-      scene.fog = new THREE.FogExp2(0x0a0a0a, 0.008);
-      const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
-      camera.position.set(0, 2, 8);
-      camera.lookAt(0, 1, 0);
-      const renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.shadowMap.enabled = true;
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      container.appendChild(renderer.domElement);
+    <!-- Виньетка для глубины -->
+    <div class="vignette"></div>
 
-      function createMarbleTexture() {
-        const canvas = document.createElement('canvas');
-        canvas.width = canvas.height = 512;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#1a1a1a';
-        ctx.fillRect(0,0,512,512);
-        for(let i=0;i<30;i++) {
-          ctx.beginPath();
-          let x=Math.random()*512, y=Math.random()*512;
-          ctx.moveTo(x,y);
-          for(let j=0;j<5;j++){ x+=(Math.random()-0.5)*100; y+=(Math.random()-0.5)*100; ctx.lineTo(x,y); }
-          ctx.strokeStyle=`rgba(212,175,55,${0.1+Math.random()*0.2})`; ctx.stroke();
-        }
-        return new THREE.CanvasTexture(canvas);
-      }
-      const marbleTexture = createMarbleTexture();
-      marbleTexture.wrapS = marbleTexture.wrapT = THREE.RepeatWrapping;
-      marbleTexture.repeat.set(2,2);
+    <!-- UI-слой -->
+    <div class="ui-layer">
+        <!-- Дворецкий и чат -->
+        <div class="butler-area">
+            <div class="butler-figure">
+                <svg viewBox="0 0 80 120" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="25" y="5" width="30" height="20" rx="3" fill="#1a1a1a" stroke="#d4af37" stroke-width="0.7"/>
+                    <rect x="20" y="20" width="40" height="6" rx="2" fill="#2a2a2a" stroke="#d4af37" stroke-width="0.4"/>
+                    <ellipse cx="40" cy="36" rx="13" ry="15" fill="#e8d5c0" stroke="#d4af37" stroke-width="0.4"/>
+                    <circle cx="34" cy="34" r="1.8" fill="#1a1a1a"/>
+                    <circle cx="46" cy="34" r="1.8" fill="#1a1a1a"/>
+                    <path d="M31 42 Q40 47 49 42" stroke="#1a1a1a" stroke-width="2" fill="none" stroke-linecap="round"/>
+                    <path d="M20 52 L15 112 L65 112 L60 52 Z" fill="#151515" stroke="#d4af37" stroke-width="0.5"/>
+                    <path d="M30 52 L40 68 L50 52 Z" fill="#f0e3d4" stroke="#d4af37" stroke-width="0.3"/>
+                    <rect x="34" y="50" width="12" height="5" rx="2" fill="#d4af37"/>
+                    <path d="M22 58 L8 82 L14 85 L26 62" fill="#151515" stroke="#d4af37" stroke-width="0.3"/>
+                    <path d="M58 58 L72 82 L66 85 L54 62" fill="#151515" stroke="#d4af37" stroke-width="0.3"/>
+                    <circle cx="10" cy="84" r="3.5" fill="#e8d5c0"/>
+                    <circle cx="70" cy="84" r="3.5" fill="#e8d5c0"/>
+                </svg>
+            </div>
+            <div class="chat-window">
+                <div class="chat-messages" id="chatMessages">
+                    <p>👋 Добро пожаловать в особняк CI. Я ваш проводник в мир премиальной мебели. Куда желаете направиться?</p>
+                </div>
+                <div class="chat-input-group">
+                    <input type="text" id="chatInput" placeholder="Напишите дворецкому..." />
+                    <button id="chatSendBtn"><i class="fas fa-paper-plane"></i></button>
+                    <button id="microphoneBtn" class="microphone-btn"><i class="fas fa-microphone"></i></button>
+                </div>
+            </div>
+        </div>
 
-      const floor = new THREE.Mesh(new THREE.PlaneGeometry(14,14), new THREE.MeshStandardMaterial({ map:marbleTexture, roughness:0.3, metalness:0.4 }));
-      floor.rotation.x = -Math.PI/2; floor.position.y = -0.5; floor.receiveShadow = true; scene.add(floor);
+        <!-- Панель навигации (двери) -->
+        <div class="doors-panel">
+            <div class="door-item" data-door="registration"><i class="fas fa-address-card"></i> Регистрация <span class="door-label">вход</span></div>
+            <div class="door-item" data-door="workshop"><i class="fas fa-tools"></i> Мастерская <span class="door-label">творчество</span></div>
+            <div class="door-item" data-door="for-her"><i class="fas fa-venus"></i> Для неё <span class="door-label">элегантность</span></div>
+            <div class="door-item" data-door="for-him"><i class="fas fa-mars"></i> Для него <span class="door-label">стиль</span></div>
+            <div class="door-item" data-door="designers"><i class="fas fa-pencil-ruler"></i> Дизайнерам <span class="door-label">вдохновение</span></div>
+            <div class="door-item" data-door="about"><i class="fas fa-info-circle"></i> О нас <span class="door-label">история</span></div>
+        </div>
+        <div class="door-cellar"><i class="fas fa-wine-bottle"></i> Погреб</div>
+    </div>
 
-      const wallMat = new THREE.MeshStandardMaterial({ color:0x1a1510, roughness:0.8, metalness:0.1 });
-      const backWall = new THREE.Mesh(new THREE.PlaneGeometry(14,5), wallMat); backWall.position.set(0,2,-5); scene.add(backWall);
-      const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(10,5), wallMat); leftWall.position.set(-7,2,0); leftWall.rotation.y=Math.PI/2; scene.add(leftWall);
-      const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(10,5), wallMat); rightWall.position.set(7,2,0); rightWall.rotation.y=-Math.PI/2; scene.add(rightWall);
+    <!-- Бургер-меню -->
+    <div class="burger-wrap" id="burgerToggle"><i class="fas fa-bars"></i></div>
+    <div class="burger-panel" id="burgerPanel">
+        <span class="close-btn" id="burgerClose"><i class="fas fa-times"></i></span>
+        <a href="#"><i class="fas fa-home"></i> Холл</a>
+        <a href="#"><i class="fas fa-address-card"></i> Регистрация</a>
+        <a href="#"><i class="fas fa-tools"></i> Мастерская</a>
+        <a href="#"><i class="fas fa-venus"></i> Для неё</a>
+        <a href="#"><i class="fas fa-mars"></i> Для него</a>
+        <a href="#"><i class="fas fa-pencil-ruler"></i> Дизайнерам</a>
+        <a href="#"><i class="fas fa-info-circle"></i> О нас</a>
+        <a href="#"><i class="fas fa-wine-bottle"></i> Погреб</a>
+        <hr style="border-color: #2a221a; margin: 1.2rem 0;" />
+        <a href="#"><i class="fas fa-star"></i> Избранное</a>
+        <a href="#"><i class="fas fa-credit-card"></i> Оплата</a>
+    </div>
 
-      scene.add(new THREE.AmbientLight(0x404060, 0.4));
-      const mainLight = new THREE.DirectionalLight(0xffdd99, 1.5); mainLight.position.set(2,5,3); mainLight.castShadow=true; scene.add(mainLight);
-      const goldLight1 = new THREE.PointLight(0xd4af37,0.8,10); goldLight1.position.set(-3,3,2); scene.add(goldLight1);
-      const goldLight2 = new THREE.PointLight(0xd4af37,0.8,10); goldLight2.position.set(3,3,2); scene.add(goldLight2);
-      const goldLight3 = new THREE.PointLight(0xd4af37,0.5,8); goldLight3.position.set(0,4,-2); scene.add(goldLight3);
-      scene.add(new THREE.PointLight(0x446688,0.3)).position.set(0,2,-5);
+    <!-- Кнопка музыки -->
+    <button id="music-toggle"><i class="fas fa-music"></i></button>
+    <!-- Аудио-элемент с приятной классической композицией -->
+    <audio id="bgMusic" loop preload="auto" style="display:none;" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"></audio>
+    <!-- Индикатор этажа -->
+    <div id="floor-indicator">🏛 Этаж 1</div>
 
-      const pillarMat = new THREE.MeshStandardMaterial({ color:0x2a2a2a, roughness:0.7, metalness:0.1 });
-      [[-3.5,0,-2],[3.5,0,-2],[-3.5,0,2],[3.5,0,2]].forEach(p => {
-        const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.4,3,12), pillarMat);
-        pillar.position.set(p[0],1,p[2]); pillar.castShadow=pillar.receiveShadow=true; scene.add(pillar);
-        const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.45,0.3,0.2,8), new THREE.MeshStandardMaterial({ color:0xd4af37, roughness:0.3, metalness:0.6 }));
-        cap.position.set(p[0],2.5,p[2]); scene.add(cap);
-      });
-
-      const chandelier = new THREE.Mesh(new THREE.SphereGeometry(0.5), new THREE.MeshStandardMaterial({ color:0xd4af37, emissive:0xd4af37, emissiveIntensity:0.6 }));
-      chandelier.position.set(0,3.2,0); scene.add(chandelier);
-      for(let i=0;i<12;i++) {
-        const angle = (i/12)*Math.PI*2;
-        const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.08), new THREE.MeshStandardMaterial({ color:0xffdd99, emissive:0xffaa44, emissiveIntensity:0.5 }));
-        bulb.position.set(Math.cos(angle)*0.9, 3.0, Math.sin(angle)*0.9); scene.add(bulb);
-      }
-
-      const doorGroups = [];
-      const doorNames = ['Регистрация','Мастерская','Для Неё','Для Него','Для Дизайнеров','О Нас'];
-      for(let i=0;i<6;i++) {
-        const angle = (i/6)*Math.PI - Math.PI/2 + 0.3;
-        const x = Math.sin(angle)*3.5, z = Math.cos(angle)*3.5 - 1;
-        const group = new THREE.Group();
-        group.position.set(x,0,z);
-        group.rotation.y = -angle + Math.PI/2;
-
-        const door = new THREE.Mesh(new THREE.BoxGeometry(0.8,2,0.1), new THREE.MeshStandardMaterial({ color:0x3a2a1a, roughness:0.6, metalness:0.3 }));
-        door.position.y=1; door.castShadow=true; group.add(door);
-
-        const handle = new THREE.Mesh(new THREE.SphereGeometry(0.05), new THREE.MeshStandardMaterial({ color:0xd4af37, metalness:0.8 }));
-        handle.position.set(0.3,1,0.06); group.add(handle);
-
-        const doorLight = new THREE.PointLight(0xd4af37,0.8,2.5); doorLight.position.set(0,2.2,0.3); group.add(doorLight);
-        const glow = new THREE.Mesh(new THREE.SphereGeometry(0.1), new THREE.MeshStandardMaterial({ color:0xd4af37, emissive:0xd4af37, emissiveIntensity:0.3, transparent:true, opacity:0.3 }));
-        glow.position.set(0,2.2,0.3); group.add(glow);
-
-        const canvas = document.createElement('canvas');
-        canvas.width=256; canvas.height=64;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle='#d4af37'; ctx.font='bold 28px "Segoe UI",sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText(doorNames[i],128,32);
-        const texture = new THREE.CanvasTexture(canvas);
-        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map:texture, transparent:true, depthTest:false }));
-        sprite.position.set(0,2.6,0.2); sprite.scale.set(1.2,0.3,1); group.add(sprite);
-
-        scene.add(group);
-        doorGroups.push({ group, door, name:doorNames[i], x, z });
-      }
-
-      document.addEventListener('mousemove', (e) => {
-        const x = (e.clientX/window.innerWidth-0.5)*0.3;
-        const y = (e.clientY/window.innerHeight-0.5)*0.15;
-        camera.position.x += (x - camera.position.x)*0.02;
-        camera.position.y += (y+2 - camera.position.y)*0.02;
-        camera.lookAt(0,1,0);
-      });
-
-      const raycaster = new THREE.Raycaster();
-      const mouse = new THREE.Vector2();
-      let isAnimating = false;
-      const flash = document.createElement('div');
-      flash.id = 'door-flash';
-      flash.style.cssText = 'position:fixed;inset:0;z-index:200;background:radial-gradient(circle,rgba(212,175,55,0.9) 0%,transparent 70%);opacity:0;pointer-events:none;transition:opacity 0.3s;';
-      document.body.appendChild(flash);
-
-      function addChatMessage(text) {
-        const div = document.getElementById('chatMessages');
-        const p = document.createElement('p');
-        p.textContent = text;
-        div.appendChild(p);
-        div.scrollTop = div.scrollHeight;
-      }
-
-      function speak(text) {
-        if('speechSynthesis' in window) {
-          const utter = new SpeechSynthesisUtterance(text);
-          utter.lang = 'ru-RU';
-          utter.rate = 0.9;
-          speechSynthesis.cancel();
-          speechSynthesis.speak(utter);
-        }
-      }
-
-      container.addEventListener('click', (e) => {
-        if(isAnimating) return;
-        const rect = renderer.domElement.getBoundingClientRect();
-        mouse.x = ((e.clientX-rect.left)/rect.width)*2-1;
-        mouse.y = -((e.clientY-rect.top)/rect.height)*2+1;
-        raycaster.setFromCamera(mouse, camera);
-
-        const meshes = [];
-        doorGroups.forEach(dg => dg.group.children.forEach(c => { if(c.isMesh) meshes.push(c); }));
-        const intersects = raycaster.intersectObjects(meshes);
-        if(intersects.length) {
-          const hit = intersects[0].object;
-          let found = null;
-          for(let dg of doorGroups) if(dg.group.children.includes(hit)) { found = dg; break; }
-          if(found) {
-            isAnimating = true;
-            const start = camera.position.clone();
-            const target = new THREE.Vector3(found.x*0.6, 2, found.z*0.6+2);
-            let t=0;
-            const interval = setInterval(() => {
-              t+=0.02;
-              if(t>=1) {
-                clearInterval(interval);
-                flash.style.opacity='1';
+    <script>
+        (function() {
+            // ---------- ПРЕЛОАДЕР ----------
+            const preloader = document.getElementById('preloader');
+            window.addEventListener('load', () => {
                 setTimeout(() => {
-                  flash.style.opacity='0';
-                  camera.position.copy(start);
-                  camera.lookAt(0,1,0);
-                  found.door.rotation.y = 0;
-                  isAnimating = false;
-                }, 800);
-                return;
-              }
-              camera.position.lerpVectors(start, target, t);
-              camera.lookAt(found.x, 1, found.z);
-              found.door.rotation.y = t*1.2;
-            }, 16);
-            addChatMessage('🚪 Открываю: ' + found.name);
-            speak('Прошу за мной, в ' + found.name);
-          }
-        }
-      });
+                    preloader.classList.add('hidden');
+                }, 900);
+            });
 
-      document.getElementById('burgerToggle').addEventListener('click', () => document.getElementById('burgerPanel').classList.toggle('open'));
-      document.getElementById('burgerClose').addEventListener('click', () => document.getElementById('burgerPanel').classList.remove('open'));
-      document.getElementById('chatSendBtn').addEventListener('click', () => {
-        const input = document.getElementById('chatInput');
-        if(input.value.trim()) {
-          addChatMessage('Вы: ' + input.value);
-          setTimeout(() => addChatMessage('Дворецкий: прекрасный выбор, сэр!'), 600);
-          speak('Прекрасный выбор, сэр!');
-          input.value='';
-        }
-      });
-      document.getElementById('microphoneBtn').addEventListener('click', () => {
-        if('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-          const recognition = new SpeechRecognition();
-          recognition.lang = 'ru-RU';
-          recognition.start();
-          recognition.onresult = (event) => {
-            const text = event.results[0][0].transcript;
-            document.getElementById('chatInput').value = text;
-            addChatMessage('🎤 Вы сказали: ' + text);
-          };
-          recognition.onerror = () => addChatMessage('🎤 Микрофон не слышит, повторите.');
-        } else {
-          addChatMessage('🎤 Ваш браузер не поддерживает голосовой ввод.');
-        }
-      });
+            // ---------- 3D-СЦЕНА (THREE.JS) ----------
+            const container = document.getElementById('three-container');
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0a0a);
+            scene.fog = new THREE.FogExp2(0x0a0a0a, 0.006);
 
-      let musicPlaying = true;
-      const bgMusic = document.getElementById('bgMusic');
-      bgMusic.volume = 0.3;
-      bgMusic.play().catch(() => {});
-      document.getElementById('music-toggle').addEventListener('click', () => {
-        if(musicPlaying) { bgMusic.pause(); musicPlaying=false; }
-        else { bgMusic.play(); musicPlaying=true; }
-        document.getElementById('music-toggle').querySelector('i').className = musicPlaying ? 'fas fa-music' : 'fas fa-volume-mute';
-      });
+            const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 2.2, 8.5);
+            camera.lookAt(0, 1, 0);
 
-      const scrollContainer = document.getElementById('scrollContainer');
-      const floorIndicator = document.getElementById('floor-indicator');
-      scrollContainer.addEventListener('scroll', () => {
-        const scrollY = scrollContainer.scrollTop;
-        const floorIndex = Math.floor(scrollY / window.innerHeight) + 1;
-        floorIndicator.textContent = '🏛 Этаж ' + floorIndex;
-      });
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
 
-      function animate() {
-        requestAnimationFrame(animate);
-        renderer.render(scene, camera);
-      }
-      animate();
-      window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth/window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-      });
-    })();
-  </script>
+            // --- Генерация текстуры мраморного пола высокого качества ---
+            function createMarbleTexture() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 1024;
+                canvas.height = 1024;
+                const ctx = canvas.getContext('2d');
+                // Базовый глубокий чёрный с оттенком
+                ctx.fillStyle = '#0e0b08';
+                ctx.fillRect(0, 0, 1024, 1024);
+                // Золотые прожилки
+                for (let i = 0; i < 50; i++) {
+                    ctx.beginPath();
+                    let x = Math.random() * 1024;
+                    let y = Math.random() * 1024;
+                    ctx.moveTo(x, y);
+                    for (let j = 0; j < 8; j++) {
+                        x += (Math.random() - 0.5) * 150;
+                        y += (Math.random() - 0.5) * 150;
+                        ctx.lineTo(x, y);
+                    }
+                    ctx.strokeStyle = `rgba(212, 175, 55, ${0.08 + Math.random() * 0.15})`;
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                }
+                // Мраморные разводы
+                for (let i = 0; i < 70; i++) {
+                    ctx.beginPath();
+                    ctx.arc(Math.random() * 1024, Math.random() * 1024, 40 + Math.random() * 120, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(25, 22, 20, ${0.1 + Math.random() * 0.25})`;
+                    ctx.fill();
+                }
+                return new THREE.CanvasTexture(canvas);
+            }
+            const marbleTexture = createMarbleTexture();
+            marbleTexture.wrapS = marbleTexture.wrapT = THREE.RepeatWrapping;
+            marbleTexture.repeat.set(2.5, 2.5);
+
+            // --- ПОЛ ---
+            const floorGeometry = new THREE.PlaneGeometry(16, 16);
+            const floorMaterial = new THREE.MeshStandardMaterial({
+                map: marbleTexture,
+                roughness: 0.2,
+                metalness: 0.5,
+            });
+            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = -0.5;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // --- СТЕНЫ ---
+            const wallMaterial = new THREE.MeshStandardMaterial({
+                color: 0x17120e,
+                roughness: 0.75,
+                metalness: 0.1,
+            });
+            const backWall = new THREE.Mesh(new THREE.PlaneGeometry(16, 6), wallMaterial);
+            backWall.position.set(0, 2.5, -6);
+            backWall.receiveShadow = true;
+            scene.add(backWall);
+
+            const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(12, 6), wallMaterial);
+            leftWall.position.set(-8, 2.5, 0);
+            leftWall.rotation.y = Math.PI / 2;
+            leftWall.receiveShadow = true;
+            scene.add(leftWall);
+
+            const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(12, 6), wallMaterial);
+            rightWall.position.set(8, 2.5, 0);
+            rightWall.rotation.y = -Math.PI / 2;
+            rightWall.receiveShadow = true;
+            scene.add(rightWall);
+
+            // --- КОЛОННЫ ---
+            const pillarMaterial = new THREE.MeshStandardMaterial({
+                color: 0x1e1a16,
+                roughness: 0.55,
+                metalness: 0.25,
+            });
+            const pillarPositions = [
+                [-4.2, 0, -2.8], [4.2, 0, -2.8],
+                [-4.2, 0, 2.8], [4.2, 0, 2.8]
+            ];
+            pillarPositions.forEach(pos => {
+                const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.45, 3.8, 16), pillarMaterial);
+                pillar.position.set(pos[0], 1.4, pos[2]);
+                pillar.castShadow = true;
+                pillar.receiveShadow = true;
+                scene.add(pillar);
+
+                // Золотая капитель
+                const capitalGeometry = new THREE.CylinderGeometry(0.5, 0.35, 0.3, 8);
+                const capitalMaterial = new THREE.MeshStandardMaterial({
+                    color: 0xd4af37,
+                    roughness: 0.25,
+                    metalness: 0.8,
+                });
+                const capital = new THREE.Mesh(capitalGeometry, capitalMaterial);
+                capital.position.set(pos[0], 3.3, pos[2]);
+                capital.castShadow = true;
+                scene.add(capital);
+            });
+
+            // --- ЛЮСТРА ---
+            const chandelierGroup = new THREE.Group();
+            const chandelierCore = new THREE.Mesh(
+                new THREE.SphereGeometry(0.6, 32, 32),
+                new THREE.MeshStandardMaterial({ color: 0xd4af37, emissive: 0xd4af37, emissiveIntensity: 0.8, roughness: 0.2, metalness: 0.9 })
+            );
+            chandelierGroup.add(chandelierCore);
+            for (let i = 0; i < 16; i++) {
+                const angle = (i / 16) * Math.PI * 2;
+                const bulb = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.1, 8, 8),
+                    new THREE.MeshStandardMaterial({ color: 0xffdd99, emissive: 0xffaa44, emissiveIntensity: 0.7 })
+                );
+                bulb.position.set(Math.cos(angle) * 1.1, -0.1, Math.sin(angle) * 1.1);
+                chandelierGroup.add(bulb);
+            }
+            chandelierGroup.position.set(0, 3.9, 0);
+            scene.add(chandelierGroup);
+
+            // --- ОСВЕЩЕНИЕ ---
+            const ambientLight = new THREE.AmbientLight(0x332e26, 0.5);
+            scene.add(ambientLight);
+
+            const mainLight = new THREE.DirectionalLight(0xffeedd, 1.8);
+            mainLight.position.set(2, 6, 4);
+            mainLight.castShadow = true;
+            mainLight.shadow.mapSize.width = 1024;
+            mainLight.shadow.mapSize.height = 1024;
+            mainLight.shadow.camera.near = 1;
+            mainLight.shadow.camera.far = 25;
+            scene.add(mainLight);
+
+            const goldLight1 = new THREE.PointLight(0xd4af37, 1.2, 12);
+            goldLight1.position.set(-3.5, 2.5, 2.5);
+            scene.add(goldLight1);
+
+            const goldLight2 = new THREE.PointLight(0xd4af37, 1.2, 12);
+            goldLight2.position.set(3.5, 2.5, 2.5);
+            scene.add(goldLight2);
+
+            const goldLight3 = new THREE.PointLight(0xd4af37, 0.8, 8);
+            goldLight3.position.set(0, 4.5, -3);
+            scene.add(goldLight3);
+
+            // --- 3D-ДВЕРИ С НАЗВАНИЯМИ И ПОДСВЕТКОЙ ---
+            const doorGroups = [];
+            const doorNames = [
+                'Регистрация', 'Мастерская', 'Для Неё',
+                'Для Него', 'Для Дизайнеров', 'О Нас'
+            ];
+
+            for (let i = 0; i < 6; i++) {
+                const angle = (i / 6) * Math.PI - Math.PI / 2 + 0.35;
+                const radius = 4.2;
+                const x = Math.sin(angle) * radius;
+                const z = Math.cos(angle) * radius - 1.5;
+                
+                const doorGroup = new THREE.Group();
+                doorGroup.position.set(x, 0, z);
+                doorGroup.rotation.y = -angle + Math.PI / 2;
+
+                // Рама двери
+                const frameGeometry = new THREE.BoxGeometry(0.9, 2.3, 0.15);
+                const frameMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x2a1f16,
+                    roughness: 0.5,
+                    metalness: 0.4,
+                });
+                const frame = new THREE.Mesh(frameGeometry, frameMaterial);
+                frame.position.y = 1.05;
+                frame.castShadow = true;
+                frame.receiveShadow = true;
+                doorGroup.add(frame);
+
+                // Дверное полотно
+                const doorGeometry = new THREE.BoxGeometry(0.8, 2.1, 0.1);
+                const doorMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x3d2c1c,
+                    roughness: 0.45,
+                    metalness: 0.35,
+                });
+                const door = new THREE.Mesh(doorGeometry, doorMaterial);
+                door.position.set(0, 1.05, 0.03);
+                door.castShadow = true;
+                doorGroup.add(door);
+
+                // Золотая ручка
+                const handleGeometry = new THREE.SphereGeometry(0.06, 16, 16);
+                const handleMaterial = new THREE.MeshStandardMaterial({
+                    color: 0xd4af37,
+                    roughness: 0.2,
+                    metalness: 0.9,
+                });
+                const handle = new THREE.Mesh(handleGeometry, handleMaterial);
+                handle.position.set(0.32, 1.05, 0.08);
+                doorGroup.add(handle);
+
+                // Подсветка над дверью
+                const doorLight = new THREE.PointLight(0xd4af37, 1.0, 3.5);
+                doorLight.position.set(0, 2.4, 0.2);
+                doorGroup.add(doorLight);
+
+                // Светящаяся сфера
+                const glowSphere = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.12, 16, 16),
+                    new THREE.MeshStandardMaterial({
+                        color: 0xd4af37,
+                        emissive: 0xd4af37,
+                        emissiveIntensity: 0.5,
+                        transparent: true,
+                        opacity: 0.4,
+                    })
+                );
+                glowSphere.position.set(0, 2.4, 0.2);
+                doorGroup.add(glowSphere);
+
+                // Текстовая метка (спрайт)
+                const canvas = document.createElement('canvas');
+                canvas.width = 256;
+                canvas.height = 64;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#d4af37';
+                ctx.font = 'bold 26px "Cormorant Garamond", "Playfair Display", serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.shadowColor = 'rgba(212, 175, 55, 0.7)';
+                ctx.shadowBlur = 10;
+                ctx.fillText(doorNames[i], 128, 32);
+                const textTexture = new THREE.CanvasTexture(canvas);
+                const spriteMaterial = new THREE.SpriteMaterial({
+                    map: textTexture,
+                    transparent: true,
+                    depthTest: false,
+                    depthWrite: false,
+                });
+                const sprite = new THREE.Sprite(spriteMaterial);
+                sprite.position.set(0, 2.7, 0.25);
+                sprite.scale.set(1.4, 0.35, 1);
+                doorGroup.add(sprite);
+
+                scene.add(doorGroup);
+                doorGroups.push({
+                    group: doorGroup,
+                    door: door,
+                    name: doorNames[i],
+                    x: x,
+                    z: z,
+                });
+            }
+
+            // ---------- ВЗАИМОДЕЙСТВИЯ ----------
+            // Параллакс мыши (мягкое движение камеры)
+            document.addEventListener('mousemove', (e) => {
+                const targetX = (e.clientX / window.innerWidth - 0.5) * 0.5;
+                const targetY = (e.clientY / window.innerHeight - 0.5) * 0.25 + 2.2;
+                camera.position.x += (targetX - camera.position.x) * 0.03;
+                camera.position.y += (targetY - camera.position.y) * 0.03;
+                camera.lookAt(0, 1.2, 0);
+            });
+
+            // Анимация открытия двери (клик по 3D-двери)
+            const raycaster = new THREE.Raycaster();
+            const mouse = new THREE.Vector2();
+            let isAnimating = false;
+
+            function addChatMessage(text) {
+                const chatDiv = document.getElementById('chatMessages');
+                const p = document.createElement('p');
+                p.textContent = text;
+                chatDiv.appendChild(p);
+                chatDiv.scrollTop = chatDiv.scrollHeight;
+            }
+
+            function speak(text) {
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'ru-RU';
+                    utterance.rate = 0.9;
+                    utterance.pitch = 1.0;
+                    speechSynthesis.cancel();
+                    speechSynthesis.speak(utterance);
+                }
+            }
+
+            container.addEventListener('click', (e) => {
+                if (isAnimating) return;
+
+                const rect = renderer.domElement.getBoundingClientRect();
+                mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(doorGroups.map(dg => dg.door));
+
+                if (intersects.length > 0) {
+                    const hitDoor = intersects[0].object;
+                    const doorData = doorGroups.find(dg => dg.door === hitDoor);
+                    if (doorData) {
+                        isAnimating = true;
+                        const startPos = camera.position.clone();
+                        const targetPos = new THREE.Vector3(
+                            doorData.x * 0.5,
+                            2.0,
+                            doorData.z * 0.5 + 2.5
+                        );
+                        let t = 0;
+                        const interval = setInterval(() => {
+                            t += 0.025;
+                            if (t >= 1) {
+                                clearInterval(interval);
+                                setTimeout(() => {
+                                    camera.position.copy(startPos);
+                                    camera.lookAt(0, 1.2, 0);
+                                    doorData.door.rotation.y = 0;
+                                    isAnimating = false;
+                                }, 900);
+                                return;
+                            }
+                            camera.position.lerpVectors(startPos, targetPos, t);
+                            camera.lookAt(doorData.x, 1.2, doorData.z);
+                            doorData.door.rotation.y = Math.sin(t * Math.PI) * 1.5;
+                        }, 16);
+
+                        addChatMessage('🚪 Открываю дверь: ' + doorData.name);
+                        speak('Прошу за мной, в раздел ' + doorData.name);
+                    }
+                }
+            });
+
+            // Бургер-меню
+            const burgerToggle = document.getElementById('burgerToggle');
+            const burgerPanel = document.getElementById('burgerPanel');
+            const burgerClose = document.getElementById('burgerClose');
+
+            burgerToggle.addEventListener('click', () => {
+                burgerPanel.classList.toggle('open');
+            });
+            burgerClose.addEventListener('click', () => {
+                burgerPanel.classList.remove('open');
+            });
+
+            // Чат с дворецким
+            const chatSendBtn = document.getElementById('chatSendBtn');
+            const chatInput = document.getElementById('chatInput');
+            chatSendBtn.addEventListener('click', () => {
+                const text = chatInput.value.trim();
+                if (text) {
+                    addChatMessage('Вы: ' + text);
+                    chatInput.value = '';
+                    setTimeout(() => {
+                        const reply = 'Дворецкий: Прекрасный выбор! Я провожу вас.';
+                        addChatMessage(reply);
+                        speak('Прекрасный выбор! Я провожу вас.');
+                    }, 600);
+                }
+            });
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    chatSendBtn.click();
+                }
+            });
+
+            // Голосовой ввод
+            const microphoneBtn = document.getElementById('microphoneBtn');
+            microphoneBtn.addEventListener('click', () => {
+                if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    const recognition = new SpeechRecognition();
+                    recognition.lang = 'ru-RU';
+                    recognition.interimResults = false;
+                    recognition.start();
+                    recognition.onresult = (event) => {
+                        const voiceText = event.results[0][0].transcript;
+                        chatInput.value = voiceText;
+                        addChatMessage('🎤 Вы сказали: ' + voiceText);
+                    };
+                    recognition.onerror = () => {
+                        addChatMessage('🎤 Не удалось распознать речь. Повторите, пожалуйста.');
+                    };
+                } else {
+                    addChatMessage('🎤 Ваш браузер не поддерживает голосовой ввод.');
+                }
+            });
+
+            // Музыка
+            const bgMusic = document.getElementById('bgMusic');
+            const musicToggle = document.getElementById('music-toggle');
+            let musicPlaying = true;
+            bgMusic.volume = 0.25;
+            bgMusic.play().catch(() => {
+                musicPlaying = false;
+                musicToggle.querySelector('i').className = 'fas fa-volume-mute';
+            });
+
+            musicToggle.addEventListener('click', () => {
+                if (musicPlaying) {
+                    bgMusic.pause();
+                    musicPlaying = false;
+                    musicToggle.querySelector('i').className = 'fas fa-volume-mute';
+                } else {
+                    bgMusic.play().catch(() => {});
+                    musicPlaying = true;
+                    musicToggle.querySelector('i').className = 'fas fa-music';
+                }
+            });
+
+            // Обработка изменения размера окна
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            // Анимация рендеринга
+            function animate() {
+                requestAnimationFrame(animate);
+                // Медленное вращение люстры
+                chandelierGroup.rotation.y += 0.0005;
+                renderer.render(scene, camera);
+            }
+            animate();
+        })();
+    </script>
 </body>
 </html>
